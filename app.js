@@ -166,7 +166,7 @@ async function guardarNuevoCliente(event) {
 
     const nit_ci = document.getElementById('cliente-nit').value;
     const razon_social = document.getElementById('cliente-razon').value;
-    const contacto = document.getElementById('cliente-contacto').value;
+    const nombre_completo = document.getElementById('cliente-contacto').value;
     const telefono = document.getElementById('cliente-telefono').value;
     const direccion = document.getElementById('cliente-direccion').value;
 
