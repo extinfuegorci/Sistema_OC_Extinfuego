@@ -133,3 +133,72 @@ window.onload = () => {
     agregarFilaItem();
     agregarFilaItem();
 };
+// ==========================================
+// 4. FUNCIONES DE CLIENTES (Lector y Guardado)
+// ==========================================
+
+// Leer clientes desde Supabase
+async function cargarClientes() {
+    const tbody = document.getElementById('tabla-clientes-body');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando datos de Supabase...</td></tr>';
+
+    const { data: clientes, error } = await _supabase
+        .from('clientes')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (error) {
+        console.error('Error al cargar clientes:', error.message);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al consultar la base de datos.</td></tr>';
+        return;
+    }
+
+    if (!clientes || clientes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay clientes registrados aún.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = clientes.map(c => `
+        <tr>
+            <td>${c.nit_ci || 'S/N'}</td>
+            <td><strong>${c.razon_social}</strong></td>
+            <td>${c.contacto || '-'}</td>
+            <td>${c.telefono || '-'}</td>
+            <td>${c.direccion || '-'}</td>
+            <td><span class="badge ${c.estado ? 'badge-success' : 'text-danger'}">${c.estado ? 'Activo' : 'Inactivo'}</span></td>
+            <td>
+                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Guardar nuevo cliente en Supabase
+async function guardarNuevoCliente(event) {
+    event.preventDefault();
+
+    const nit_ci = document.getElementById('cliente-nit').value;
+    const razon_social = document.getElementById('cliente-razon').value;
+    const contacto = document.getElementById('cliente-contacto').value;
+    const telefono = document.getElementById('cliente-telefono').value;
+    const direccion = document.getElementById('cliente-direccion').value;
+
+    if (!razon_social) {
+        alert('Por favor ingrese la Razón Social o Nombre de la Empresa.');
+        return;
+    }
+
+    const { data, error } = await _supabase
+        .from('clientes')
+        .insert([
+            { nit_ci, razon_social, contacto, telefono, direccion, estado: true }
+        ]);
+
+    if (error) {
+        alert('Error al registrar cliente: ' + error.message);
+    } else {
+        alert('Cliente registrado con éxito.');
+        cerrarModal('modal-nuevo-cliente');
+        cargarClientes(); // Recargar la tabla
+    }
+}
