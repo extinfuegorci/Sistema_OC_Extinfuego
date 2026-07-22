@@ -3,8 +3,8 @@
 // ==========================================
 // ⚠️ Reemplaza estos valores con las credenciales de tu panel de Supabase
 // (Project Settings > API)
-const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co/rest/v1/';
-const SUPABASE_KEY = 'sb_publishable_B0FT71MB-bOtLwcqJYvOyg_VXlxm19L';
+const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqb2NsYW5hcm5tbGJhamVmY3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3Mjg5NzYsImV4cCI6MjEwMDMwNDk3Nn0.KMFLOyp_CDQLEpnMQDxRh3t99BHst8nXseaMxu-SF_g';
 
 // Inicialización del cliente
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
