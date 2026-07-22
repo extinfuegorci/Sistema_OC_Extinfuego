@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Iconos limpios de Remixicon -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <!-- Ocultar error de favicon -->
+    <link rel="icon" href="data:,">
     <!-- Librería Cliente de Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -20,19 +22,19 @@
         </div>
         
         <nav class="menu">
-            <button class="nav-btn active" onclick="cambiarVista('dashboard')">
+            <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
                 <i class="ri-dashboard-line"></i> Dashboard / Reportes
             </button>
-            <button class="nav-btn" onclick="cambiarVista('nueva-orden')">
+            <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
                 <i class="ri-file-add-line"></i> Nueva Orden
             </button>
-            <button class="nav-btn" onclick="cambiarVista('clientes')">
+            <button class="nav-btn" onclick="cambiarVista('clientes', this)">
                 <i class="ri-building-line"></i> Clientes / Empresas
             </button>
-            <button class="nav-btn" onclick="cambiarVista('usuarios')">
+            <button class="nav-btn" onclick="cambiarVista('usuarios', this)">
                 <i class="ri-user-settings-line"></i> Usuarios & Permisos
             </button>
-            <button class="nav-btn" onclick="cambiarVista('bitacora')">
+            <button class="nav-btn" onclick="cambiarVista('bitacora', this)">
                 <i class="ri-history-line"></i> Bitácora / Auditoría
             </button>
         </nav>
@@ -237,30 +239,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-clientes-body">
-                        <tr>
-                            <td>102938475</td>
-                            <td><strong>FERROTODO S.A.</strong></td>
-                            <td>Jose Joselito</td>
-                            <td>78123456</td>
-                            <td>Av. Cristo Redentor 4to Anillo</td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>
-                                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
-                                <button class="btn-icon text-danger" title="Inactivar"><i class="ri-user-unfollow-line"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>4622155011</td>
-                            <td><strong>KENNETH WILLS</strong></td>
-                            <td>Kenneth Wills</td>
-                            <td>76543210</td>
-                            <td>Equipetrol Calle 8</td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>
-                                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
-                                <button class="btn-icon text-danger" title="Inactivar"><i class="ri-user-unfollow-line"></i></button>
-                            </td>
-                        </tr>
+                        <!-- El contenido se cargará dinámicamente desde Supabase -->
                     </tbody>
                 </table>
             </div>
@@ -289,32 +268,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-usuarios-body">
-                        <tr>
-                            <td>1234567 CB</td>
-                            <td><strong>Kevin Ayala</strong></td>
-                            <td>kayala</td>
-                            <td><span class="badge badge-role-admin">Administrador</span></td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>2026-07-22</td>
-                            <td>
-                                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
-                                <button class="btn-icon" title="Restablecer Contraseña"><i class="ri-key-line"></i></button>
-                                <button class="btn-icon text-danger" title="Inactivar"><i class="ri-user-settings-line"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>8765432 SC</td>
-                            <td><strong>Encargado de Área</strong></td>
-                            <td>encargado1</td>
-                            <td><span class="badge badge-role-encargado">Encargado</span></td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>2026-07-21</td>
-                            <td>
-                                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
-                                <button class="btn-icon" title="Restablecer Contraseña"><i class="ri-key-line"></i></button>
-                                <button class="btn-icon text-danger" title="Inactivar"><i class="ri-user-settings-line"></i></button>
-                            </td>
-                        </tr>
+                        <!-- Aquí también limpiaremos para cuando conectes la tabla usuarios -->
                     </tbody>
                 </table>
             </div>
@@ -350,13 +304,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-bitacora-body">
-                        <tr>
-                            <td>22/07/2026 10:30:15</td>
-                            <td><strong>kayala</strong></td>
-                            <td><span class="badge badge-info">ORDENES</span></td>
-                            <td><span class="badge badge-success">CREAR</span></td>
-                            <td>Se emitió la Orden de Compra N° 01-DKT para KENNETH WILLS</td>
-                        </tr>
+                        <!-- Aquí también limpiaremos para cuando conectes la bitácora -->
                     </tbody>
                 </table>
             </div>
@@ -400,30 +348,31 @@
         </div>
     </div>
 
-    <!-- MODAL 2: REGISTRAR NUEVO CLIENTE -->
+    <!-- MODAL 2: REGISTRAR NUEVO CLIENTE (CORREGIDO) -->
     <div id="modal-nuevo-cliente" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>🏢 Registrar Cliente / Empresa</h3>
                 <span class="close-modal" onclick="cerrarModal('modal-nuevo-cliente')">&times;</span>
             </div>
-            <div class="modal-body">
+            <!-- Convertimos el modal-body en un form para manejar el evento Submit -->
+            <form id="form-nuevo-cliente" class="modal-body" onsubmit="guardarNuevoCliente(event)">
                 <div class="form-group mb-10">
                     <label>NIT / CI:</label>
-                    <input type="text" placeholder="Ej: 102938475">
+                    <input type="text" id="cliente-nit" placeholder="Ej: 102938475">
                 </div>
                 <div class="form-group mb-10">
                     <label>Razón Social / Nombre Empresa:</label>
-                    <input type="text" placeholder="Ej: FERROTODO S.A.">
+                    <input type="text" id="cliente-razon" placeholder="Ej: FERROTODO S.A." required>
                 </div>
                 <div class="form-group mb-10">
                     <label>Nombre de Encargado / Contacto:</label>
-                    <input type="text" placeholder="Ej: Jose Joselito">
+                    <input type="text" id="cliente-contacto" placeholder="Ej: Jose Joselito">
                 </div>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group">
                         <label>Teléfono / Celular:</label>
-                        <input type="text" placeholder="Ej: 78123456">
+                        <input type="text" id="cliente-telefono" placeholder="Ej: 78123456">
                     </div>
                     <div class="form-group">
                         <label>Correo (Opcional):</label>
@@ -432,10 +381,13 @@
                 </div>
                 <div class="form-group mb-15">
                     <label>Dirección:</label>
-                    <input type="text" placeholder="Ej: Av. Principal Nro 123">
+                    <input type="text" id="cliente-direccion" placeholder="Ej: Av. Principal Nro 123">
                 </div>
-                <button class="btn btn-primary" style="width: 100%;"><i class="ri-save-line"></i> Guardar Cliente</button>
-            </div>
+                <!-- Botón tipo submit -->
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="ri-save-line"></i> Guardar Cliente
+                </button>
+            </form>
         </div>
     </div>
 
