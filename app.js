@@ -16,43 +16,58 @@ async function hashearPassword(password) {
 
 async function iniciarSesion(event) {
     event.preventDefault();
-    const userNick = document.getElementById('login-user').value.trim();
+    // Nota: El input de tu HTML ahora debe recibir un correo, no un nick.
+    const userEmail = document.getElementById('login-user').value.trim(); 
     const userPass = document.getElementById('login-pass').value;
     const errorMsg = document.getElementById('login-error');
     if(errorMsg) errorMsg.style.display = 'none';
 
     try {
-        const hashedPass = await hashearPassword(userPass);
-
-        const { data: usuarios, error } = await _supabase
-            .from('usuarios')
-            .select('*')
-            .eq('usuario', userNick)
-            .eq('contrasenia_hash', hashedPass)
-            .eq('activo', true);
+        // 1. Iniciar sesión nativa con Supabase
+        const { data, error } = await _supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: userPass,
+        });
 
         if (error) throw error;
 
-        if (usuarios && usuarios.length > 0) {
-            const usuarioAutenticado = usuarios[0];
+        // 2. Si el login es exitoso, Supabase genera un token seguro automáticamente.
+        // Ahora buscamos los datos de "Rol" en tu tabla personalizada 'usuarios'
+        const { data: perfiles, error: perfilError } = await _supabase
+            .from('usuarios')
+            .select('*')
+            .eq('usuario', userEmail) // Asegúrate de que en tu tabla 'usuarios' guardes este mismo correo
+            .eq('activo', true);
+
+        if (perfilError) throw perfilError;
+
+        if (perfiles && perfiles.length > 0) {
+            const usuarioAutenticado = perfiles[0];
+            
+            // Guardamos el perfil para la interfaz gráfica
             localStorage.setItem('sesion_activa', JSON.stringify(usuarioAutenticado));
             
             configurarEntornoUsuario(usuarioAutenticado);
-            
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('app-layout').style.display = 'flex';
             cambiarVista('dashboard');
         } else {
-            if(errorMsg) errorMsg.style.display = 'block';
+            // El usuario existe en Auth pero no en tu tabla, o está inactivo
+            await _supabase.auth.signOut();
+            throw new Error("Usuario inactivo o sin perfil asignado.");
         }
     } catch (error) {
-            console.error("Error detallado:", error);
-            // Mostrar el error real que nos devuelve Supabase
-            alert("Error de Supabase: " + error.message); 
+        console.error("Error de autenticación:", error);
+        if(errorMsg) {
+            errorMsg.innerText = "Credenciales incorrectas o acceso denegado.";
+            errorMsg.style.display = 'block';
         }
+    }
 }
 
-function cerrarSesion() {
+// También debes actualizar la función cerrarSesion:
+async function cerrarSesion() {
+    await _supabase.auth.signOut(); // Destruye el token seguro en el servidor
     localStorage.removeItem('sesion_activa');
     window.location.reload();
 }
