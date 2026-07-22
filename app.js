@@ -1,3 +1,50 @@
+// ==========================================
+// 1. CONFIGURACIÓN Y CONEXIÓN CON SUPABASE
+// ==========================================
+// ⚠️ Reemplaza estos valores con las credenciales de tu panel de Supabase
+// (Project Settings > API)
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+const SUPABASE_KEY = 'TU-ANON-KEY-DE-SUPABASE';
+
+// Inicialización del cliente
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ==========================================
+// 2. NAVEGACIÓN Y CAMBIO DE VISTAS
+// ==========================================
+function cambiarVista(idVista) {
+    document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    
+    document.getElementById(`vista-${idVista}`).classList.add('active');
+    
+    const titulos = {
+        'dashboard': 'Dashboard General',
+        'nueva-orden': 'Emisión de Orden de Compra',
+        'clientes': 'Gestión de Clientes y Empresas',
+        'usuarios': 'Control de Usuarios y Permisos',
+        'bitacora': 'Bitácora de Auditoría'
+    };
+    document.getElementById('titulo-seccion').innerText = titulos[idVista] || 'Sistema OC';
+    
+    // Cargar datos automáticamente según la pestaña
+    if (idVista === 'clientes') cargarClientes();
+    if (idVista === 'usuarios') cargarUsuarios();
+    if (idVista === 'bitacora') cargarBitacora();
+    if (idVista === 'dashboard') cargarOrdenesDashboard();
+}
+
+// ==========================================
+// 3. GESTIÓN DE MODALES
+// ==========================================
+function abrirModal(idModal) {
+    document.getElementById(idModal).style.display = 'flex';
+}
+
+function cerrarModal(idModal) {
+    document.getElementById(idModal).style.display = 'none';
+}
+
 // NAVEGACIÓN ENTRE VISTAS
 function cambiarVista(idVista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
