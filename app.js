@@ -13,26 +13,41 @@ async function hashearPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-// Función para proteger la página
+// Función para proteger las rutas
 async function protegerRuta() {
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Si no hay sesión activa en Supabase, expulsar al usuario
-  if (!session) {
-    // Usamos replace en lugar de href para que no se guarde en el historial del botón "atrás"
-    window.location.replace('login.html'); // Cambia 'login.html' por tu página de inicio de sesión real
+  // Revisar si la URL actual contiene el nombre de tu página de login
+  // (Asegúrate de que 'login.html' sea el nombre exacto de tu archivo)
+  const esPaginaLogin = window.location.pathname.includes('login.html');
+
+  // Si NO hay sesión y NO estamos en el login, expulsar al usuario al login
+  if (!session && !esPaginaLogin) {
+    window.location.replace('login.html'); 
+  }
+  
+  // Opcional: Si SÍ hay sesión activa y entran por error al login, 
+  // mandarlos directo al panel principal para que no vuelvan a poner la clave
+  if (session && esPaginaLogin) {
+    window.location.replace('index.html'); // Cambia 'index.html' por el nombre de tu panel
   }
 }
 
 // Ejecutar la protección apenas cargue el script
 protegerRuta();
 
-// Opcional: Escuchar si la sesión se cierra mientras está en la página
+// Escuchar si la sesión se cierra mientras el usuario navega
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || !session) {
+  const esPaginaLogin = window.location.pathname.includes('login.html');
+  if ((event === 'SIGNED_OUT' || !session) && !esPaginaLogin) {
     window.location.replace('login.html');
   }
 });
+
+// --------------------------------------------------------
+// A partir de aquí hacia abajo, puedes dejar tu código actual
+// con la función iniciarSesion() y demás...
+// --------------------------------------------------------
 async function iniciarSesion(event) {
     event.preventDefault();
     // Nota: El input de tu HTML ahora debe recibir un correo, no un nick.
