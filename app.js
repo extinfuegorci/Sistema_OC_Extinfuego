@@ -13,7 +13,26 @@ async function hashearPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+// Función para proteger la página
+async function protegerRuta() {
+  const { data: { session } } = await supabase.auth.getSession();
 
+  // Si no hay sesión activa en Supabase, expulsar al usuario
+  if (!session) {
+    // Usamos replace en lugar de href para que no se guarde en el historial del botón "atrás"
+    window.location.replace('login.html'); // Cambia 'login.html' por tu página de inicio de sesión real
+  }
+}
+
+// Ejecutar la protección apenas cargue el script
+protegerRuta();
+
+// Opcional: Escuchar si la sesión se cierra mientras está en la página
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || !session) {
+    window.location.replace('login.html');
+  }
+});
 async function iniciarSesion(event) {
     event.preventDefault();
     // Nota: El input de tu HTML ahora debe recibir un correo, no un nick.
