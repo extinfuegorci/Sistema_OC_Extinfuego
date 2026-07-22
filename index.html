@@ -11,306 +11,359 @@
     <link rel="icon" href="data:,">
     <!-- Librería Cliente de Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* Estilos básicos para la pantalla de Login */
+        #login-section {
+            display: flex;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            background-color: #f4f7fe;
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-card h2 { margin-bottom: 20px; color: #1e293b; }
+        .login-card input {
+            width: 100%; padding: 10px; margin-bottom: 15px;
+            border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;
+        }
+        .login-card button { width: 100%; }
+        /* Ocultar el layout principal inicialmente */
+        #app-layout { display: none; height: 100vh; width: 100vw; display: flex; }
+    </style>
 </head>
 <body>
 
-    <!-- BARRA LATERAL (SIDEBAR) -->
-    <aside class="sidebar">
-        <div class="logo">
-            <i class="ri-fire-fill fire-icon"></i>
-            <h2>EXTINFUEGO</h2>
-        </div>
-        
-        <nav class="menu">
-            <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
-                <i class="ri-dashboard-line"></i> Dashboard / Reportes
-            </button>
-            <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
-                <i class="ri-file-add-line"></i> Nueva Orden
-            </button>
-            <button class="nav-btn" onclick="cambiarVista('clientes', this)">
-                <i class="ri-building-line"></i> Clientes / Empresas
-            </button>
-            <button class="nav-btn" onclick="cambiarVista('usuarios', this)">
-                <i class="ri-user-settings-line"></i> Usuarios & Permisos
-            </button>
-            <button class="nav-btn" onclick="cambiarVista('bitacora', this)">
-                <i class="ri-history-line"></i> Bitácora / Auditoría
-            </button>
-        </nav>
-
-        <div class="user-info">
-            <i class="ri-user-3-fill"></i>
-            <div>
-                <p class="user-name">Usuario Admin</p>
-                <small>Administrador</small>
+    <!-- ==================== SECCIÓN DE LOGIN ==================== -->
+    <div id="login-section">
+        <div class="login-card">
+            <h2><i class="ri-fire-fill fire-icon" style="color: #ef4444;"></i> EXTINFUEGO</h2>
+            <p style="margin-bottom: 20px; color: #64748b;">Ingrese sus credenciales</p>
+            <form id="form-login" onsubmit="iniciarSesion(event)">
+                <input type="text" id="login-user" placeholder="Nombre de usuario (Login)" required autocomplete="username">
+                <input type="password" id="login-pass" placeholder="Contraseña" required autocomplete="current-password">
+                <button type="submit" class="btn btn-primary btn-lg">Iniciar Sesión</button>
+            </form>
+            <div id="login-error" style="color: red; margin-top: 15px; font-size: 14px; display: none;">
+                Credenciales incorrectas o usuario inactivo.
             </div>
         </div>
-    </aside>
+    </div>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="main-content">
+    <!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+    <div id="app-layout">
 
-        <!-- HEADER SUPERIOR -->
-        <header class="topbar">
-            <h1 id="titulo-seccion">Dashboard General</h1>
-            <div class="actions">
-                <button class="btn btn-primary" onclick="cambiarVista('nueva-orden')">
-                    <i class="ri-add-line"></i> Crear Orden
+        <!-- BARRA LATERAL (SIDEBAR) -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="ri-fire-fill fire-icon"></i>
+                <h2>EXTINFUEGO</h2>
+            </div>
+            
+            <nav class="menu">
+                <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
+                    <i class="ri-dashboard-line"></i> Dashboard / Reportes
+                </button>
+                <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
+                    <i class="ri-file-add-line"></i> Nueva Orden
+                </button>
+                <button class="nav-btn" onclick="cambiarVista('clientes', this)">
+                    <i class="ri-building-line"></i> Clientes / Empresas
+                </button>
+                <button class="nav-btn" onclick="cambiarVista('usuarios', this)">
+                    <i class="ri-user-settings-line"></i> Usuarios & Permisos
+                </button>
+                <button class="nav-btn" onclick="cambiarVista('bitacora', this)">
+                    <i class="ri-history-line"></i> Bitácora / Auditoría
+                </button>
+            </nav>
+
+            <div class="user-info">
+                <i class="ri-user-3-fill"></i>
+                <div style="flex: 1;">
+                    <p class="user-name" id="ui-user-name">Usuario</p>
+                    <small id="ui-user-rol">Rol</small>
+                </div>
+                <button class="btn-icon" onclick="cerrarSesion()" style="color: #ef4444; border:none; background:none; cursor:pointer;" title="Cerrar Sesión">
+                    <i class="ri-logout-box-r-line"></i>
                 </button>
             </div>
-        </header>
+        </aside>
 
-        <!-- SECCIÓN 1: DASHBOARD / REPORTES -->
-        <section id="vista-dashboard" class="vista active">
-            <div class="cards-grid">
-                <div class="card card-blue">
-                    <h3>Total Gastado</h3>
-                    <p class="monto">Bs. 0.00</p>
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="main-content">
+
+            <!-- HEADER SUPERIOR -->
+            <header class="topbar">
+                <h1 id="titulo-seccion">Dashboard General</h1>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="cambiarVista('nueva-orden')">
+                        <i class="ri-add-line"></i> Crear Orden
+                    </button>
                 </div>
-                <div class="card card-green">
-                    <h3>Ingresos Totales</h3>
-                    <p class="monto">Bs. 0.00</p>
-                </div>
-                <div class="card card-orange">
-                    <h3>Faltante / Por Gastar</h3>
-                    <p class="monto">Bs. 0.00</p>
-                </div>
-            </div>
+            </header>
 
-            <div class="filter-box">
-                <input type="text" placeholder="🔍 Buscar por N° OC, Proveedor o Empresa..." class="input-search">
-                <select class="input-select">
-                    <option value="">Todas las Empresas</option>
-                </select>
-                <select class="input-select">
-                    <option value="">Todos los Estados</option>
-                    <option value="PENDIENTE">Pendiente</option>
-                    <option value="APROBADO">Aprobado</option>
-                    <option value="SOLICITUD_ANULACION">Solicitud Anulación</option>
-                </select>
-                <button class="btn btn-secondary"><i class="ri-file-excel-2-line"></i> Exportar Excel</button>
-            </div>
-
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>OC N°</th>
-                            <th>PROVEEDOR</th>
-                            <th>EMPRESA</th>
-                            <th>FECHA ING.</th>
-                            <th>FECHA DEP.</th>
-                            <th>MONTO TOTAL</th>
-                            <th>ESTADO</th>
-                            <th>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-ordenes-body">
-                        <tr>
-                            <td colspan="8" class="text-center">No hay órdenes registradas.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- SECCIÓN 2: FORMULARIO DE NUEVA ORDEN DE COMPRA -->
-        <section id="vista-nueva-orden" class="vista">
-            <div class="form-container">
-                <div class="form-header">
-                    <h2>Emisión de Orden de Compra</h2>
-                    <div class="oc-num-badge">OC N°: <input type="text" id="oc-num" value="01-DKT"></div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Proveedor:</label>
-                        <div class="input-with-btn">
-                            <input type="text" id="proveedor-nombre" placeholder="Nombre o Razón Social">
-                            <button class="btn-icon" onclick="abrirModal('modal-clientes')" title="Buscar de la lista"><i class="ri-search-line"></i></button>
-                        </div>
+            <!-- SECCIÓN 1: DASHBOARD / REPORTES -->
+            <section id="vista-dashboard" class="vista active">
+                <div class="cards-grid">
+                    <div class="card card-blue">
+                        <h3>Total Gastado</h3>
+                        <p class="monto">Bs. 0.00</p>
                     </div>
-                    <div class="form-group">
-                        <label>Contacto:</label>
-                        <input type="text" id="contacto-nombre" placeholder="Nombre de contacto">
+                    <div class="card card-green">
+                        <h3>Ingresos Totales</h3>
+                        <p class="monto">Bs. 0.00</p>
                     </div>
-                    <div class="form-group">
-                        <label>Fecha Solicitud:</label>
-                        <input type="date" id="fecha-solicitud">
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha Entrega:</label>
-                        <input type="date" id="fecha-entrega">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Facturar a:</label>
-                        <input type="text" id="facturar-a" placeholder="Razón Social Factura">
-                    </div>
-                    <div class="form-group">
-                        <label>NIT:</label>
-                        <input type="text" id="nit-factura" placeholder="Número de NIT">
-                    </div>
-                    <div class="form-group">
-                        <label>Empresa Solicitante:</label>
-                        <select id="empresa-solicitante">
-                            <option value="EXTINFUEGO">EXTINFUEGO</option>
-                            <option value="RCI">RCI</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Forma de Pago:</label>
-                        <select id="forma-pago">
-                            <option value="CONTADO">Contado</option>
-                            <option value="CREDITO">Crédito</option>
-                            <option value="ANTICIPO">Anticipo</option>
-                            <option value="TRANSFERENCIA">Transferencia</option>
-                        </select>
+                    <div class="card card-orange">
+                        <h3>Faltante / Por Gastar</h3>
+                        <p class="monto">Bs. 0.00</p>
                     </div>
                 </div>
 
-                <h3 class="sub-title">Detalle de Ítems</h3>
+                <div class="filter-box">
+                    <input type="text" placeholder="🔍 Buscar por N° OC, Proveedor o Empresa..." class="input-search">
+                    <select class="input-select">
+                        <option value="">Todas las Empresas</option>
+                    </select>
+                    <select class="input-select">
+                        <option value="">Todos los Estados</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="APROBADO">Aprobado</option>
+                        <option value="SOLICITUD_ANULACION">Solicitud Anulación</option>
+                    </select>
+                    <button class="btn btn-secondary"><i class="ri-file-excel-2-line"></i> Exportar Excel</button>
+                </div>
+
                 <div class="table-container">
-                    <table class="data-table" id="tabla-items">
+                    <table class="data-table">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">ITEM</th>
-                                <th style="width: 90px;">CANT</th>
-                                <th style="width: 100px;">UNIDAD</th>
-                                <th>DESCRIPCION</th>
-                                <th style="width: 130px;">PRECIO (BS)</th>
-                                <th style="width: 130px;">TOTAL (BS)</th>
-                                <th style="width: 50px;"></th>
+                                <th>OC N°</th>
+                                <th>PROVEEDOR</th>
+                                <th>EMPRESA</th>
+                                <th>FECHA ING.</th>
+                                <th>FECHA DEP.</th>
+                                <th>MONTO TOTAL</th>
+                                <th>ESTADO</th>
+                                <th>ACCIONES</th>
                             </tr>
                         </thead>
-                        <tbody id="items-body"></tbody>
+                        <tbody id="tabla-ordenes-body">
+                            <tr>
+                                <td colspan="8" class="text-center">No hay órdenes registradas.</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-                <button class="btn btn-secondary mt-10" onclick="agregarFilaItem()"><i class="ri-add-line"></i> Agregar Ítem</button>
+            </section>
 
-                <div class="totals-section">
-                    <div class="obs-box">
-                        <label>Observaciones:</label>
-                        <textarea id="observacion" rows="3" placeholder="Escriba alguna observación..."></textarea>
+            <!-- SECCIÓN 2: FORMULARIO DE NUEVA ORDEN DE COMPRA -->
+            <section id="vista-nueva-orden" class="vista">
+                <div class="form-container">
+                    <div class="form-header">
+                        <h2>Emisión de Orden de Compra</h2>
+                        <div class="oc-num-badge">OC N°: <input type="text" id="oc-num" value="01-DKT"></div>
                     </div>
-                    <div class="summary-box">
-                        <div class="summary-row">
-                            <span>SUB-TOTAL:</span>
-                            <strong id="lbl-subtotal">0.00</strong>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Proveedor:</label>
+                            <div class="input-with-btn">
+                                <input type="text" id="proveedor-nombre" placeholder="Nombre o Razón Social">
+                                <button class="btn-icon" onclick="abrirModal('modal-clientes')" title="Buscar de la lista"><i class="ri-search-line"></i></button>
+                            </div>
                         </div>
-                        <div class="summary-row">
-                            <span>DESCUENTO (%):</span>
-                            <input type="number" id="descuento-pct" value="0" min="0" max="100" style="width: 60px;" onchange="calcularTotales()">
+                        <div class="form-group">
+                            <label>Contacto:</label>
+                            <input type="text" id="contacto-nombre" placeholder="Nombre de contacto">
                         </div>
-                        <div class="summary-row total-row">
-                            <span>TOTAL BS.-</span>
-                            <strong id="lbl-total">0.00</strong>
+                        <div class="form-group">
+                            <label>Fecha Solicitud:</label>
+                            <input type="date" id="fecha-solicitud">
                         </div>
+                        <div class="form-group">
+                            <label>Fecha Entrega:</label>
+                            <input type="date" id="fecha-entrega">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Facturar a:</label>
+                            <input type="text" id="facturar-a" placeholder="Razón Social Factura">
+                        </div>
+                        <div class="form-group">
+                            <label>NIT:</label>
+                            <input type="text" id="nit-factura" placeholder="Número de NIT">
+                        </div>
+                        <div class="form-group">
+                            <label>Empresa Solicitante:</label>
+                            <select id="empresa-solicitante">
+                                <option value="EXTINFUEGO">EXTINFUEGO</option>
+                                <option value="RCI">RCI</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Forma de Pago:</label>
+                            <select id="forma-pago">
+                                <option value="CONTADO">Contado</option>
+                                <option value="CREDITO">Crédito</option>
+                                <option value="ANTICIPO">Anticipo</option>
+                                <option value="TRANSFERENCIA">Transferencia</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 class="sub-title">Detalle de Ítems</h3>
+                    <div class="table-container">
+                        <table class="data-table" id="tabla-items">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">ITEM</th>
+                                    <th style="width: 90px;">CANT</th>
+                                    <th style="width: 100px;">UNIDAD</th>
+                                    <th>DESCRIPCION</th>
+                                    <th style="width: 130px;">PRECIO (BS)</th>
+                                    <th style="width: 130px;">TOTAL (BS)</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-body"></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-secondary mt-10" onclick="agregarFilaItem()"><i class="ri-add-line"></i> Agregar Ítem</button>
+
+                    <div class="totals-section">
+                        <div class="obs-box">
+                            <label>Observaciones:</label>
+                            <textarea id="observacion" rows="3" placeholder="Escriba alguna observación..."></textarea>
+                        </div>
+                        <div class="summary-box">
+                            <div class="summary-row">
+                                <span>SUB-TOTAL:</span>
+                                <strong id="lbl-subtotal">0.00</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>DESCUENTO (%):</span>
+                                <input type="number" id="descuento-pct" value="0" min="0" max="100" style="width: 60px;" onchange="calcularTotales()">
+                            </div>
+                            <div class="summary-row total-row">
+                                <span>TOTAL BS.-</span>
+                                <strong id="lbl-total">0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary btn-lg"><i class="ri-save-line"></i> Guardar Orden de Compra</button>
                     </div>
                 </div>
+            </section>
 
-                <div class="form-actions">
-                    <button class="btn btn-primary btn-lg"><i class="ri-save-line"></i> Guardar Orden de Compra</button>
+            <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
+            <section id="vista-clientes" class="vista">
+                <div class="topbar-actions mb-15">
+                    <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search" style="width: 300px;">
+                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
+                        <i class="ri-add-line"></i> Registrar Cliente / Empresa
+                    </button>
                 </div>
-            </div>
-        </section>
 
-        <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
-        <section id="vista-clientes" class="vista">
-            <div class="topbar-actions mb-15">
-                <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search" style="width: 300px;">
-                <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
-                    <i class="ri-add-line"></i> Registrar Cliente / Empresa
-                </button>
-            </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>NIT / CI</th>
+                                <th>RAZÓN SOCIAL / EMPRESA</th>
+                                <th>CONTACTO PRINCIPAL</th>
+                                <th>TELÉFONO</th>
+                                <th>DIRECCIÓN</th>
+                                <th>ESTADO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-clientes-body">
+                            <!-- El contenido se cargará dinámicamente desde Supabase -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>NIT / CI</th>
-                            <th>RAZÓN SOCIAL / EMPRESA</th>
-                            <th>CONTACTO PRINCIPAL</th>
-                            <th>TELÉFONO</th>
-                            <th>DIRECCIÓN</th>
-                            <th>ESTADO</th>
-                            <th>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-clientes-body">
-                        <!-- El contenido se cargará dinámicamente desde Supabase -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
+            <section id="vista-usuarios" class="vista">
+                <div class="topbar-actions mb-15">
+                    <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search" style="width: 300px;">
+                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
+                        <i class="ri-user-add-line"></i> Crear Nuevo Usuario
+                    </button>
+                </div>
 
-        <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
-        <section id="vista-usuarios" class="vista">
-            <div class="topbar-actions mb-15">
-                <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search" style="width: 300px;">
-                <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
-                    <i class="ri-user-add-line"></i> Crear Nuevo Usuario
-                </button>
-            </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CI</th>
+                                <th>NOMBRE COMPLETO</th>
+                                <th>USUARIO</th>
+                                <th>PRIVILEGIO / ROL</th>
+                                <th>ESTADO</th>
+                                <th>FECHA REGISTRO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios-body">
+                            <!-- Datos de usuarios -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>CI</th>
-                            <th>NOMBRE COMPLETO</th>
-                            <th>USUARIO</th>
-                            <th>PRIVILEGIO / ROL</th>
-                            <th>ESTADO</th>
-                            <th>FECHA REGISTRO</th>
-                            <th>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-usuarios-body">
-                        <!-- Aquí también limpiaremos para cuando conectes la tabla usuarios -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
+            <section id="vista-bitacora" class="vista">
+                <div class="filter-box mb-15">
+                    <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search" style="flex: 1;">
+                    <select class="input-select">
+                        <option value="">Todos los Módulos</option>
+                        <option value="USUARIOS">Usuarios</option>
+                        <option value="CLIENTES">Clientes</option>
+                        <option value="ORDENES">Órdenes de Compra</option>
+                    </select>
+                    <select class="input-select">
+                        <option value="">Todas las Gestiones</option>
+                        <option value="CREAR">Crear</option>
+                        <option value="EDITAR">Editar</option>
+                        <option value="INACTIVAR">Inactivar</option>
+                    </select>
+                </div>
 
-        <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
-        <section id="vista-bitacora" class="vista">
-            <div class="filter-box mb-15">
-                <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search" style="flex: 1;">
-                <select class="input-select">
-                    <option value="">Todos los Módulos</option>
-                    <option value="USUARIOS">Usuarios</option>
-                    <option value="CLIENTES">Clientes</option>
-                    <option value="ORDENES">Órdenes de Compra</option>
-                </select>
-                <select class="input-select">
-                    <option value="">Todas las Gestiones</option>
-                    <option value="CREAR">Crear</option>
-                    <option value="EDITAR">Editar</option>
-                    <option value="INACTIVAR">Inactivar</option>
-                </select>
-            </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>FECHA Y HORA</th>
+                                <th>USUARIO</th>
+                                <th>MÓDULO</th>
+                                <th>GESTIÓN / ACCIÓN</th>
+                                <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-bitacora-body">
+                            <!-- Datos bitácora -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>FECHA Y HORA</th>
-                            <th>USUARIO</th>
-                            <th>MÓDULO</th>
-                            <th>GESTIÓN / ACCIÓN</th>
-                            <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-bitacora-body">
-                        <!-- Aquí también limpiaremos para cuando conectes la bitácora -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        </main>
+    </div> <!-- Cierre de #app-layout -->
 
-    </main>
+    <!-- ==================== MODALES ==================== -->
 
     <!-- MODAL 1: SELECCIONAR CLIENTE -->
     <div id="modal-clientes" class="modal">
@@ -348,14 +401,13 @@
         </div>
     </div>
 
-    <!-- MODAL 2: REGISTRAR NUEVO CLIENTE (CORREGIDO) -->
+    <!-- MODAL 2: REGISTRAR NUEVO CLIENTE (INCLUIDO Y FUNCIONAL) -->
     <div id="modal-nuevo-cliente" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>🏢 Registrar Cliente / Empresa</h3>
                 <span class="close-modal" onclick="cerrarModal('modal-nuevo-cliente')">&times;</span>
             </div>
-            <!-- Convertimos el modal-body en un form para manejar el evento Submit -->
             <form id="form-nuevo-cliente" class="modal-body" onsubmit="guardarNuevoCliente(event)">
                 <div class="form-group mb-10">
                     <label>NIT / CI:</label>
@@ -376,14 +428,13 @@
                     </div>
                     <div class="form-group">
                         <label>Correo (Opcional):</label>
-                        <input type="email" placeholder="contacto@empresa.com">
+                        <input type="email" id="cliente-correo" placeholder="contacto@empresa.com">
                     </div>
                 </div>
                 <div class="form-group mb-15">
                     <label>Dirección:</label>
                     <input type="text" id="cliente-direccion" placeholder="Ej: Av. Principal Nro 123">
                 </div>
-                <!-- Botón tipo submit -->
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
                     <i class="ri-save-line"></i> Guardar Cliente
                 </button>
@@ -391,45 +442,53 @@
         </div>
     </div>
 
-    <!-- MODAL 3: REGISTRAR NUEVO USUARIO -->
+    <!-- MODAL 3: REGISTRAR NUEVO USUARIO (MODIFICADO) -->
     <div id="modal-nuevo-usuario" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>👤 Registrar Nuevo Usuario</h3>
                 <span class="close-modal" onclick="cerrarModal('modal-nuevo-usuario')">&times;</span>
             </div>
-            <div class="modal-body">
+            <form id="form-nuevo-usuario" class="modal-body" onsubmit="guardarNuevoUsuario(event)">
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group mb-10">
                         <label>Carnet de Identidad (CI):</label>
-                        <input type="text" placeholder="Ej: 1234567 CB">
+                        <input type="text" id="usuario-ci" placeholder="Ej: 1234567" required>
                     </div>
                     <div class="form-group mb-10">
                         <label>Nombre de Usuario (Login):</label>
-                        <input type="text" placeholder="Ej: kayala">
+                        <input type="text" id="usuario-nick" placeholder="Ej: kayala" required>
                     </div>
                 </div>
                 <div class="form-group mb-10">
                     <label>Nombre Completo:</label>
-                    <input type="text" placeholder="Ej: Kevin Ayala">
+                    <input type="text" id="usuario-nombre" placeholder="Ej: Kevin Ayala" required>
                 </div>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group mb-10">
                         <label>Contraseña:</label>
-                        <input type="password" placeholder="******">
+                        <input type="password" id="usuario-pass" placeholder="******" required>
                     </div>
                     <div class="form-group mb-10">
-                        <label>Tipo de Usuario / Privilegio:</label>
-                        <select id="select-privilegio">
-                            <option value="1">Administrador</option>
-                            <option value="2">Operador</option>
-                            <option value="3">Lectura</option>
-                            <option value="4">Encargado (Autorizaciones)</option>
+                        <label>Privilegio / Rol:</label>
+                        <select id="usuario-privilegio" required>
+                            <option value="">Seleccione...</option>
+                            <option value="1">1. Administrador (Todo)</option>
+                            <option value="2">2. Operador</option>
+                            <option value="3">3. Encargado (Autorizaciones)</option>
+                            <option value="4">4. Lector</option>
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="width: 100%;"><i class="ri-user-add-line"></i> Guardar Usuario</button>
-            </div>
+                <div class="form-group mb-15">
+                    <label>
+                        <input type="checkbox" id="usuario-activo" checked> Usuario Activo
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="ri-save-line"></i> Guardar Usuario
+                </button>
+            </form>
         </div>
     </div>
 
