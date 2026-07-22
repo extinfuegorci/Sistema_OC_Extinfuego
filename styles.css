@@ -80,3 +80,16 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
 .text-danger { color: #dc2626 !important; }
 .text-center { text-align: center; }
 .mb-10 { margin-bottom: 10px; } .mb-15 { margin-bottom: 15px; } .mt-10 { margin-top: 10px; }
+
+#login-section {
+    display: flex;
+    position: absolute; /* Desvincula el login del layout del resto del sistema */
+    top: 0;
+    left: 0;
+    width: 100vw; /* Fuerza el ancho total de la pantalla */
+    height: 100vh; /* Fuerza el alto total de la pantalla */
+    justify-content: center;
+    align-items: center;
+    background-color: #f4f7fe;
+    z-index: 9999; /* Asegura que quede por encima de todo */
+}
