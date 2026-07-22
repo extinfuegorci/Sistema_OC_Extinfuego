@@ -3,8 +3,8 @@
 // ==========================================
 // ⚠️ Reemplaza estos valores con las credenciales de tu panel de Supabase
 // (Project Settings > API)
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_KEY = 'TU-ANON-KEY-DE-SUPABASE';
+const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'sb_publishable_B0FT71MB-bOtLwcqJYvOyg_VXlxm19L';
 
 // Inicialización del cliente
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
