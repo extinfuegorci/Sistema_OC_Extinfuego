@@ -30,7 +30,7 @@ async function iniciarSesion(event) {
         const { data: usuarios, error } = await _supabase
             .from('usuarios')
             .select('*')
-            .eq('usuariov', userNick)
+            .eq('usuario', userNick)
             .eq('contrasenia_hash', hashedPass)
             .eq('activo', true);
 
@@ -338,7 +338,7 @@ async function cargarUsuarios() {
         <tr>
             <td>${u.ci}</td>
             <td><strong>${u.nombre_completo}</strong></td>
-            <td>${u.usuariov}</td>
+            <td>${u.usuario}</td>
             <td>${roles[u.privilegio_id]}</td>
             <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td>${new Date(u.created_at).toLocaleDateString()}</td>
@@ -352,7 +352,7 @@ async function guardarNuevoUsuario(event) {
 
     const ci = document.getElementById('usuario-ci').value;
     const nombreCompleto = document.getElementById('usuario-nombre').value;
-    const usuariov = document.getElementById('usuario-nick').value;
+    const usuario = document.getElementById('usuario-nick').value;
     const passwordPlana = document.getElementById('usuario-pass').value;
     const privilegioId = parseInt(document.getElementById('usuario-privilegio').value, 10);
     const activo = document.getElementById('usuario-activo').checked;
@@ -365,7 +365,7 @@ async function guardarNuevoUsuario(event) {
             .insert([{
                 ci: ci,
                 nombre_completo: nombreCompleto,
-                usuariov: usuariov,
+                usuario: usuario,
                 contrasenia_hash: contraseniaHash,
                 privilegio_id: privilegioId,
                 activo: activo
