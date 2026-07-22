@@ -48,10 +48,11 @@ async function iniciarSesion(event) {
         } else {
             if(errorMsg) errorMsg.style.display = 'block';
         }
-    } catch (err) {
-        console.error('Error de autenticación:', err.message);
-        alert('Ocurrió un error al intentar conectar con el servidor.');
-    }
+    } catch (error) {
+            console.error("Error detallado:", error);
+            // Mostrar el error real que nos devuelve Supabase
+            alert("Error de Supabase: " + error.message); 
+        }
 }
 
 function cerrarSesion() {
