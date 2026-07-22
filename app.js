@@ -130,10 +130,14 @@ async function cargarClientes() {
 
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando datos de Supabase...</td></tr>';
 
+    // Usamos un JOIN de Supabase para traer el cliente y sus contactos asociados
     const { data: clientes, error } = await _supabase
         .from('clientes')
-        .select('*')
-        .order('id', { ascending: false });
+        .select(`
+            *,
+            contactos_cliente ( nombre_completo )
+        `)
+        .order('created_at', { ascending: false }); // Ordenamos por fecha de creación
 
     if (error) {
         console.error('Error al cargar clientes:', error.message);
@@ -146,19 +150,27 @@ async function cargarClientes() {
         return;
     }
 
-    tbody.innerHTML = clientes.map(c => `
-        <tr>
-            <td>${c.nit_ci || 'S/N'}</td>
-            <td><strong>${c.razon_social}</strong></td>
-            <td>${c.contacto || '-'}</td>
-            <td>${c.telefono || '-'}</td>
-            <td>${c.direccion || '-'}</td>
-            <td><span class="badge ${c.estado ? 'badge-success' : 'text-danger'}">${c.estado ? 'Activo' : 'Inactivo'}</span></td>
-            <td>
-                <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = clientes.map(c => {
+        // Extraer el nombre del contacto principal si existe
+        let nombreContacto = '-';
+        if (c.contactos_cliente && c.contactos_cliente.length > 0) {
+            nombreContacto = c.contactos_cliente[0].nombre_completo || '-';
+        }
+
+        return `
+            <tr>
+                <td>${c.nit_ci || 'S/N'}</td>
+                <td><strong>${c.razon_social}</strong></td>
+                <td>${nombreContacto}</td>
+                <td>${c.telefono || '-'}</td>
+                <td>${c.direccion || '-'}</td>
+                <td><span class="badge ${c.activo ? 'badge-success' : 'text-danger'}">${c.activo ? 'Activo' : 'Inactivo'}</span></td>
+                <td>
+                    <button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 async function guardarNuevoCliente(event) {
@@ -169,30 +181,65 @@ async function guardarNuevoCliente(event) {
     const nombre_completo = document.getElementById('cliente-contacto').value;
     const telefono = document.getElementById('cliente-telefono').value;
     const direccion = document.getElementById('cliente-direccion').value;
+    
+    // Obtenemos el correo si el input existe en tu HTML
+    const correoElem = document.getElementById('cliente-correo');
+    const correo = correoElem ? correoElem.value : '';
 
     if (!razon_social) {
         alert('Por favor ingrese la Razón Social o Nombre de la Empresa.');
         return;
     }
 
-    const { data, error } = await _supabase
+    // 1. Insertar primero el Cliente (y pedirle a Supabase que nos devuelva el ID creado)
+    const { data: clienteData, error: errorCliente } = await _supabase
         .from('clientes')
         .insert([
-            { nit_ci, razon_social, contacto, telefono, direccion, estado: true }
-        ]);
+            { 
+                nit_ci: nit_ci, 
+                razon_social: razon_social, 
+                telefono: telefono, 
+                direccion: direccion, 
+                activo: true // Usando la columna correcta de la BD
+            }
+        ])
+        .select(); 
 
-    if (error) {
-        alert('Error al registrar cliente: ' + error.message);
-    } else {
-        alert('Cliente registrado con éxito.');
-        cerrarModal('modal-nuevo-cliente');
-        
-        // Limpiar formulario
-        const form = document.getElementById('form-nuevo-cliente');
-        if (form) form.reset();
-
-        cargarClientes(); // Recargar la tabla automáticamente
+    if (errorCliente) {
+        alert('Error al registrar la empresa: ' + errorCliente.message);
+        return; // Detenemos la ejecución si falla
     }
+
+    // 2. Insertar el Contacto asociado (si el usuario escribió un nombre)
+    if (clienteData && clienteData.length > 0 && nombre_completo) {
+        const clienteId = clienteData[0].id;
+        
+        const { error: errorContacto } = await _supabase
+            .from('contactos_cliente')
+            .insert([
+                { 
+                    cliente_id: clienteId, 
+                    nombre_completo: nombre_completo,
+                    telefono: telefono,
+                    correo: correo
+                }
+            ]);
+            
+        if (errorContacto) {
+            console.error("Error guardando el contacto:", errorContacto.message);
+            // No alertamos al usuario porque la empresa sí se guardó, pero lo registramos en la consola
+        }
+    }
+
+    alert('Cliente registrado con éxito.');
+    cerrarModal('modal-nuevo-cliente');
+    
+    // Limpiar formulario
+    const form = document.getElementById('form-nuevo-cliente');
+    if (form) form.reset();
+
+    // Recargar la tabla automáticamente para ver el nuevo registro
+    cargarClientes(); 
 }
 
 // ==========================================
