@@ -1,8 +1,6 @@
 // ==========================================
 // 1. CONFIGURACIÓN Y CONEXIÓN CON SUPABASE
 // ==========================================
-// ⚠️ Reemplaza estos valores con las credenciales de tu panel de Supabase
-// (Project Settings > API)
 const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqb2NsYW5hcm5tbGJhamVmY3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3Mjg5NzYsImV4cCI6MjEwMDMwNDk3Nn0.KMFLOyp_CDQLEpnMQDxRh3t99BHst8nXseaMxu-SF_g';
 
@@ -12,12 +10,21 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================================
 // 2. NAVEGACIÓN Y CAMBIO DE VISTAS
 // ==========================================
-function cambiarVista(idVista) {
+function cambiarVista(idVista, btnElement = null) {
+    // Ocultar todas las vistas y desactivar botones
     document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
-    document.getElementById(`vista-${idVista}`).classList.add('active');
-    
+
+    // Activar vista seleccionada
+    const vistaDestino = document.getElementById(`vista-${idVista}`);
+    if (vistaDestino) vistaDestino.classList.add('active');
+
+    // Activar botón presionado si se pasó como parámetro
+    if (btnElement) {
+        btnElement.classList.add('active');
+    }
+
+    // Actualizar título
     const titulos = {
         'dashboard': 'Dashboard General',
         'nueva-orden': 'Emisión de Orden de Compra',
@@ -25,53 +32,37 @@ function cambiarVista(idVista) {
         'usuarios': 'Control de Usuarios y Permisos',
         'bitacora': 'Bitácora de Auditoría'
     };
-    document.getElementById('titulo-seccion').innerText = titulos[idVista] || 'Sistema OC';
-    
-    // Cargar datos automáticamente según la pestaña
+    const elemTitulo = document.getElementById('titulo-seccion');
+    if (elemTitulo) elemTitulo.innerText = titulos[idVista] || 'Sistema OC';
+
+    // Cargar datos dinámicos desde Supabase según la pestaña
     if (idVista === 'clientes') cargarClientes();
-    if (idVista === 'usuarios') cargarUsuarios();
-    if (idVista === 'bitacora') cargarBitacora();
-    if (idVista === 'dashboard') cargarOrdenesDashboard();
+    if (idVista === 'usuarios') if (typeof cargarUsuarios === 'function') cargarUsuarios();
+    if (idVista === 'bitacora') if (typeof cargarBitacora === 'function') cargarBitacora();
+    if (idVista === 'dashboard') if (typeof cargarOrdenesDashboard === 'function') cargarOrdenesDashboard();
 }
 
 // ==========================================
 // 3. GESTIÓN DE MODALES
 // ==========================================
 function abrirModal(idModal) {
-    document.getElementById(idModal).style.display = 'flex';
+    const modal = document.getElementById(idModal);
+    if (modal) modal.style.display = 'flex';
 }
 
 function cerrarModal(idModal) {
-    document.getElementById(idModal).style.display = 'none';
+    const modal = document.getElementById(idModal);
+    if (modal) modal.style.display = 'none';
 }
 
-// NAVEGACIÓN ENTRE VISTAS
-function cambiarVista(idVista) {
-    document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
-    document.getElementById(`vista-${idVista}`).classList.add('active');
-    event.currentTarget.classList.add('active');
-
-    const titulos = {
-        'dashboard': 'Dashboard General',
-        'nueva-orden': 'Crear Orden de Compra',
-        'clientes': 'Gestión de Clientes',
-        'usuarios': 'Usuarios y Permisos',
-        'bitacora': 'Bitácora de Auditoría'
-    };
-    document.getElementById('titulo-seccion').innerText = titulos[idVista] || '';
-}
-
-// CONTROL DE MODALES
-function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
-function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
-
-// MANEJO DE LA TABLA DINÁMICA DE ÍTEMS
+// ==========================================
+// 4. TABLA DINÁMICA DE ÍTEMS (ÓRDENES DE COMPRA)
+// ==========================================
 function agregarFilaItem() {
     const tbody = document.getElementById('items-body');
-    const numFila = tbody.children.length + 1;
+    if (!tbody) return;
 
+    const numFila = tbody.children.length + 1;
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td class="text-center">${numFila}</td>
@@ -87,7 +78,7 @@ function agregarFilaItem() {
         <td><input type="text" placeholder="Descripción del ítem..." class="item-desc" style="width: 100%;"></td>
         <td><input type="number" value="0.00" step="0.01" class="item-precio" onchange="calcularTotales()" style="width: 100%;"></td>
         <td class="item-subtotal-txt" style="font-weight: bold;">0.00</td>
-        <td><button class="btn-icon" onclick="eliminarFila(this)"><i class="ri-delete-bin-line"></i></button></td>
+        <td><button type="button" class="btn-icon" onclick="eliminarFila(this)"><i class="ri-delete-bin-line"></i></button></td>
     `;
     tbody.appendChild(tr);
     calcularTotales();
@@ -119,27 +110,24 @@ function calcularTotales() {
         subtotalGeneral += subtotalFila;
     });
 
-    const dctoPct = parseFloat(document.getElementById('descuento-pct').value) || 0;
+    const elemDcto = document.getElementById('descuento-pct');
+    const dctoPct = elemDcto ? (parseFloat(elemDcto.value) || 0) : 0;
     const montoDescuento = subtotalGeneral * (dctoPct / 100);
     const totalFinal = subtotalGeneral - montoDescuento;
 
-    document.getElementById('lbl-subtotal').innerText = subtotalGeneral.toFixed(2);
-    document.getElementById('lbl-total').innerText = totalFinal.toFixed(2);
+    const lblSubtotal = document.getElementById('lbl-subtotal');
+    const lblTotal = document.getElementById('lbl-total');
+    if (lblSubtotal) lblSubtotal.innerText = subtotalGeneral.toFixed(2);
+    if (lblTotal) lblTotal.innerText = totalFinal.toFixed(2);
 }
 
-// INICIALIZACIÓN CON 3 FILAS VACÍAS
-window.onload = () => {
-    agregarFilaItem();
-    agregarFilaItem();
-    agregarFilaItem();
-};
 // ==========================================
-// 4. FUNCIONES DE CLIENTES (Lector y Guardado)
+// 5. FUNCIONES DE CLIENTES (CRUD SUPABASE)
 // ==========================================
-
-// Leer clientes desde Supabase
 async function cargarClientes() {
     const tbody = document.getElementById('tabla-clientes-body');
+    if (!tbody) return;
+
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando datos de Supabase...</td></tr>';
 
     const { data: clientes, error } = await _supabase
@@ -173,9 +161,8 @@ async function cargarClientes() {
     `).join('');
 }
 
-// Guardar nuevo cliente en Supabase
 async function guardarNuevoCliente(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
     const nit_ci = document.getElementById('cliente-nit').value;
     const razon_social = document.getElementById('cliente-razon').value;
@@ -199,6 +186,21 @@ async function guardarNuevoCliente(event) {
     } else {
         alert('Cliente registrado con éxito.');
         cerrarModal('modal-nuevo-cliente');
-        cargarClientes(); // Recargar la tabla
+        
+        // Limpiar formulario
+        const form = document.getElementById('form-nuevo-cliente');
+        if (form) form.reset();
+
+        cargarClientes(); // Recargar la tabla automáticamente
     }
 }
+
+// ==========================================
+// 6. INICIALIZACIÓN DE LA APLICACIÓN
+// ==========================================
+window.onload = () => {
+    // Cargar filas iniciales en el formulario de nueva orden
+    agregarFilaItem();
+    agregarFilaItem();
+    agregarFilaItem();
+};
