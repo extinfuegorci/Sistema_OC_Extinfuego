@@ -33,6 +33,8 @@ async function iniciarSesion(event) {
 
         // 2. Si el login es exitoso, Supabase genera un token seguro automáticamente.
         // Ahora buscamos los datos de "Rol" en tu tabla personalizada 'usuarios'
+
+        const idSeguro = data.user.id;
         const { data: perfiles, error: perfilError } = await _supabase
             .from('usuarios')
             .select('*')
