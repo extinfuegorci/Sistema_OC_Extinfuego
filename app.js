@@ -1,6 +1,3 @@
-// ==========================================
-// 1. CONFIGURACIÓN Y CONEXIÓN CON SUPABASE
-// ==========================================
 const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqb2NsYW5hcm5tbGJhamVmY3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3Mjg5NzYsImV4cCI6MjEwMDMwNDk3Nn0.KMFLOyp_CDQLEpnMQDxRh3t99BHst8nXseaMxu-SF_g';
 
