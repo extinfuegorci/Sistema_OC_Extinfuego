@@ -405,60 +405,7 @@ async function guardarNuevoCliente(event) {
 // ==========================================
 // 6. FUNCIONES DE USUARIOS (CRUD NUEVO)
 // ==========================================
-async function cargarUsuarios() {
-    const tbody = document.getElementById('tabla-usuarios-body');
-    if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando usuarios...</td></tr>';
-
-    const { data: usuarios, error } = await _supabase
-        .from('usuarios')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar usuarios.</td></tr>';
-        return;
-    }
-
-    if (!usuarios || usuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay usuarios registrados.</td></tr>';
-        return;
-    }
-
-    const roles = { 1: 'Administrador', 2: 'Operador', 3: 'Encargado', 4: 'Lector' };
-
-    tbody.innerHTML = usuarios.map(u => `
-        <tr>
-            <td>${u.ci}</td>
-            <td><strong>${u.nombre_completo}</strong></td>
-            <td>${u.usuario}</td>
-            <td>${roles[u.privilegio_id]}</td>
-            <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
-            <td>${new Date(u.created_at).toLocaleDateString()}</td>
-            <td>
-                <!-- Botón de Editar con el onclick agregado y variable "u" -->
-                <button class="btn-icon" 
-                    onclick="abrirModalEdicion('${u.auth_id}', '${u.ci}', '${u.nombre_completo}', '${u.privilegio_id}', ${u.activo})" 
-                    title="Editar">
-                    <i class="ri-edit-line"></i>
-                </button>
-
-                <!-- Botón Llave -->
-                <button class="btn btn-sm" style="background-color: #3b82f6; color: white; margin-left: 5px;" onclick="cambiarPassword('${u.auth_id}')" title="Restablecer Contraseña">
-                    <i class="ri-key-line"></i>
-                </button>
-                
-                <!-- Botón de Restablecer Contraseña corregido con variable "u" y dentro del mismo <td> -->
-                <button class="btn btn-sm" style="background-color: #3b82f6; color: white;" 
-                    onclick="cambiarPassword('${u.auth_id}')" 
-                    title="Restablecer Contraseña">
-                    <i class="ri-key-line"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
 
 async function guardarNuevoUsuario(event) {
     event.preventDefault();
@@ -551,63 +498,64 @@ async function desbloquearUsuario(authId) {
 // ==========================================
 // CARGAR TABLA DE USUARIOS
 // ==========================================
+// ==========================================
+// 6. CARGAR TABLA DE USUARIOS (VERSIÓN UNIFICADA)
+// ==========================================
 async function cargarUsuarios() {
     const tbody = document.getElementById('tabla-usuarios-body');
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando usuarios...</td></tr>';
+    if (!tbody) return;
 
-    try {
-        // Pedimos los datos a la tabla 'usuarios'
-        // NOTA: Ajusta 'privilegio_id' o 'roles' según cómo se llame en tu base de datos
-        const { data: usuarios, error } = await _supabase
-            .from('usuarios')
-            .select('*')
-            .order('created_at', { ascending: false });
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando usuarios...</td></tr>';
 
-        if (error) throw error;
+    const { data: usuarios, error } = await _supabase
+        .from('usuarios')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        tbody.innerHTML = ''; // Limpiamos el mensaje de "cargando"
-
-        usuarios.forEach(user => {
-            // Dar formato a la fecha
-            const fecha = new Date(user.created_at).toLocaleDateString('es-ES');
-            
-            // Estado visual
-            const badgeEstado = user.activo 
-                ? `<span style="color: green; font-weight: bold;">Activo</span>` 
-                : `<span style="color: red; font-weight: bold;">Inactivo</span>`;
-
-            // Creamos la fila
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${user.ci || '-'}</td>
-                <td>${user.nombre_completo || '-'}</td>
-                <td>${user.email || 'Sin correo'}</td>
-                <td>${user.privilegio_id || 'Sin rol'}</td>
-                <td>${badgeEstado}</td>
-                <td>${fecha}</td>
-                <td>
-                    <!-- Botón para Editar (Pasa todos los datos al modal) -->
-                    <button class="btn btn-sm btn-primary" 
-                        onclick="abrirModalEdicion('${user.auth_id}', '${user.ci}', '${user.nombre_completo}', '${user.privilegio_id}', ${user.activo})" 
-                        title="Editar Usuario">
-                        <i class="ri-edit-line"></i>
-                    </button>
-                    
-                    <!-- Botón para Desbloquear de emergencia -->
-                    <button class="btn btn-sm" style="background-color: #f59e0b; color: white;" 
-                        onclick="desbloquearUsuario('${user.auth_id}')" 
-                        title="Desbloquear intentos fallidos">
-                        <i class="ri-lock-unlock-line"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-    } catch (error) {
-        console.error("Error al cargar usuarios:", error);
-        tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error al cargar la lista</td></tr>`;
+    if (error) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar usuarios.</td></tr>';
+        return;
     }
+
+    if (!usuarios || usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay usuarios registrados.</td></tr>';
+        return;
+    }
+
+    const roles = { 1: 'Administrador', 2: 'Operador', 3: 'Encargado', 4: 'Lector' };
+
+    tbody.innerHTML = usuarios.map(u => `
+        <tr>
+            <td>${u.ci || '-'}</td>
+            <td><strong>${u.nombre_completo || '-'}</strong></td>
+            <td>${u.usuario || '-'}</td>
+            <td>${roles[u.privilegio_id] || 'Desconocido'}</td>
+            <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+            <td>${new Date(u.created_at).toLocaleDateString('es-ES')}</td>
+            <td>
+                <!-- Botón Editar (Gris por defecto) -->
+                <button class="btn-icon" 
+                    onclick="abrirModalEdicion('${u.auth_id}', '${u.ci}', '${u.nombre_completo}', '${u.privilegio_id}', ${u.activo})" 
+                    title="Editar">
+                    <i class="ri-edit-line"></i>
+                </button>
+
+                <!-- Botón Llave (Azul) -->
+                <button class="btn btn-sm" style="background-color: #3b82f6; color: white; margin-left: 5px;" 
+                    onclick="cambiarPassword('${u.auth_id}')" 
+                    title="Restablecer Contraseña">
+                    <i class="ri-key-line"></i>
+                </button>
+                
+                <!-- Botón Desbloquear (Naranja) -->
+                <button class="btn btn-sm" style="background-color: #f59e0b; color: white; margin-left: 5px;" 
+                    onclick="desbloquearUsuario('${u.auth_id}')" 
+                    title="Desbloquear intentos fallidos">
+                    <i class="ri-lock-unlock-line"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
 }
 
 // ==========================================
