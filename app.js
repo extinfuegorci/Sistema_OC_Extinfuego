@@ -77,71 +77,71 @@ async function iniciarSesion(event) {
   const correo = document.getElementById('login-user').value;
   const passwordInput = document.getElementById('input-password').value;
 
-  // 1. Verificar si el usuario está actualmente bloqueado (¡Se mantiene intacto!)
-  const tiempoDesbloqueo = localStorage.getItem('tiempoDesbloqueo');
+  // 1. Crear claves únicas por usuario para el LocalStorage
+  const keyIntentos = `intentosFallidos_${correo}`;
+  const keyBloqueo = `tiempoDesbloqueo_${correo}`;
+
+  // 2. Verificar si ESTE CORREO está actualmente bloqueado
+  const tiempoDesbloqueo = localStorage.getItem(keyBloqueo);
   
   if (tiempoDesbloqueo && Date.now() < parseInt(tiempoDesbloqueo)) {
     const minutosRestantes = Math.ceil((parseInt(tiempoDesbloqueo) - Date.now()) / 60000);
-    alert(`Por seguridad, debes esperar ${minutosRestantes} minutos antes de volver a intentarlo.`);
+    alert(`Por seguridad, la cuenta ${correo} debe esperar ${minutosRestantes} minutos antes de volver a intentarlo.`);
     return;
   }
 
-  // 2. Intentar el inicio de sesión con Supabase
+  // 3. Intentar el inicio de sesión con Supabase
   const { data, error } = await _supabase.auth.signInWithPassword({
     email: correo, 
     password: passwordInput,
   });
 
   if (error) {
-    // 3. Lógica en caso de error: Intentos fallidos y bloqueo (¡Se mantiene intacto!)
-    let intentosActuales = parseInt(localStorage.getItem('intentosFallidos') || '0');
+    // 4. Lógica en caso de error (credenciales incorrectas)
+    let intentosActuales = parseInt(localStorage.getItem(keyIntentos) || '0');
     intentosActuales++;
     
     if (intentosActuales >= MAX_INTENTOS) {
       const milisegundosBloqueo = TIEMPO_BLOQUEO_MINUTOS * 60 * 1000;
-      localStorage.setItem('tiempoDesbloqueo', Date.now() + milisegundosBloqueo);
-      localStorage.setItem('intentosFallidos', '0'); 
+      localStorage.setItem(keyBloqueo, Date.now() + milisegundosBloqueo);
+      localStorage.setItem(keyIntentos, '0'); 
       
-      alert(`Has superado los ${MAX_INTENTOS} intentos. Sistema bloqueado temporalmente.`);
+      alert(`Has superado los ${MAX_INTENTOS} intentos. Cuenta bloqueada temporalmente en este equipo.`);
     } else {
-      localStorage.setItem('intentosFallidos', intentosActuales.toString());
+      localStorage.setItem(keyIntentos, intentosActuales.toString());
       
       const errorDiv = document.getElementById('login-error');
       if (errorDiv) {
           errorDiv.style.display = 'block';
-          errorDiv.innerText = `Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`;
+          errorDiv.innerText = `Credenciales incorrectas para ${correo}. Intento ${intentosActuales} de ${MAX_INTENTOS}.`;
       } else {
           alert(`Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`);
       }
     }
   } else {
-    // 4. LÓGICA DE ÉXITO: Contraseña correcta, ahora verificamos si está activo
+    // 5. LÓGICA DE ÉXITO: Contraseña correcta, verificamos si está activo
 
-    // Hacemos la consulta a tu tabla 'usuarios'
     const { data: userData, error: userError } = await _supabase
         .from('usuarios')
-        .select('activo, nombre_completo, privilegio_id') // Traemos también sus datos reales
+        .select('activo, nombre_completo, privilegio_id')
         .eq('auth_id', data.user.id)
         .single();
 
-    // Verificamos si la cuenta está desactivada
     if (userData && userData.activo === false) {
-        await _supabase.auth.signOut(); // Deslogueamos de Supabase inmediatamente
+        await _supabase.auth.signOut(); 
         alert("❌ Tu cuenta está inactiva. Por favor, contacta al administrador.");
-        return; // Salimos de la función sin guardar sesión ni limpiar intentos
+        return; 
     }
 
-    // SI LLEGA AQUÍ: La contraseña es correcta Y el usuario está activo
-    localStorage.removeItem('intentosFallidos');
-    localStorage.removeItem('tiempoDesbloqueo');
+    // SI LLEGA AQUÍ: Limpiamos los errores SOLO de este usuario
+    localStorage.removeItem(keyIntentos);
+    localStorage.removeItem(keyBloqueo);
     
-    // Guardamos la sesión localmente YA CON LOS DATOS REALES (adiós al forzado temporal)
     localStorage.setItem('sesion_activa', JSON.stringify({
         nombre_completo: userData ? userData.nombre_completo : data.user.email,
-        privilegio_id: userData ? userData.privilegio_id : 4 // Si no hay datos, le damos rol Lector (4) por seguridad
+        privilegio_id: userData ? userData.privilegio_id : 4 
     }));
 
-    // Recargamos la página
     window.location.reload(); 
   }
 }
