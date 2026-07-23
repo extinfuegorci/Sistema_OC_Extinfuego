@@ -294,37 +294,31 @@ async function guardarNuevoUsuario(event) {
         const privilegio_id = parseInt(document.getElementById('rol-nuevo-usuario').value, 10);
         const activo = document.getElementById('usuario-activo').checked;
 
-        // 1. Creamos el usuario en Supabase Auth mediante la Edge Function
-        const URL_FUNCION = `${SUPABASE_URL}/functions/v1/crear-usuario`;
-        const { data: { session } } = await _supabase.auth.getSession();
-
-        const response = await fetch(URL_FUNCION, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify({ email: correo, password: password })
+        // 1. Llamamos a la Edge Function usando el método oficial de Supabase (evita el error JWT)
+        const { data: resultado, error: errorFuncion } = await _supabase.functions.invoke('crear-usuario', {
+            body: { email: correo, password: password }
         });
 
-        const resultado = await response.json();
-
-        // Validamos si la Edge Function devolvió algún error (ej. correo duplicado)
-        if (!response.ok) {
-            throw new Error(resultado.error || "Error al crear credenciales.");
+        // Validamos si falló la conexión con la función
+        if (errorFuncion) {
+            throw new Error("Error de autorización o red: " + errorFuncion.message);
         }
 
-        const nuevoAuthId = resultado.user.id; // ¡Aquí capturamos el auth_id!
+        // Validamos si la Edge Function se ejecutó pero devolvió un error (ej. contraseña corta o correo duplicado)
+        if (resultado && resultado.error) {
+            throw new Error(resultado.error);
+        }
+
+        const nuevoAuthId = resultado.user.id; // ¡Capturamos el ID seguro de Auth!
 
         // 2. Guardamos los datos en tu tabla pública ENLAZANDO el auth_id
         const { error: dbError } = await _supabase.from('usuarios').insert([{
-            auth_id: nuevoAuthId, // <-- ESTO CONECTA EL LOGIN CON TU TABLA
+            auth_id: nuevoAuthId,
             ci: ci,
             nombre_completo: nombre,
             usuario: correo,
             privilegio_id: privilegio_id,
             activo: activo
-            // Nota: Ya no guardamos contrasenia_hash aquí porque Supabase Auth la administra de forma segura.
         }]);
 
         if (dbError) throw dbError;
