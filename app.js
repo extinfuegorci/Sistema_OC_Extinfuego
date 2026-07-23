@@ -77,66 +77,58 @@ async function iniciarSesion(event) {
   const correo = document.getElementById('login-user').value;
   const passwordInput = document.getElementById('input-password').value;
 
-  // 1. Crear claves únicas por usuario para el LocalStorage
-  const keyIntentos = `intentosFallidos_${correo}`;
-  const keyBloqueo = `tiempoDesbloqueo_${correo}`;
-
-  // 2. Verificar si ESTE CORREO está actualmente bloqueado
-  const tiempoDesbloqueo = localStorage.getItem(keyBloqueo);
+  // 1. Verificamos el estado en el servidor ANTES de intentar la contraseña
+  const { data: estadoData, error: estadoError } = await _supabase.rpc('verificar_estado_login', { p_correo: correo });
   
-  if (tiempoDesbloqueo && Date.now() < parseInt(tiempoDesbloqueo)) {
-    const minutosRestantes = Math.ceil((parseInt(tiempoDesbloqueo) - Date.now()) / 60000);
-    alert(`Por seguridad, la cuenta ${correo} debe esperar ${minutosRestantes} minutos antes de volver a intentarlo.`);
-    return;
+  if (estadoData && estadoData.existe) {
+      if (!estadoData.activo) {
+          alert("❌ Tu cuenta está inactiva. Por favor, contacta al administrador.");
+          return;
+      }
+      if (estadoData.bloqueado) {
+          // Calculamos los minutos restantes basados en la fecha de la base de datos
+          const tiempoRestante = Math.ceil((new Date(estadoData.hasta).getTime() - Date.now()) / 60000);
+          alert(`Por seguridad, esta cuenta está bloqueada globalmente. Debes esperar ${tiempoRestante} minutos.`);
+          return;
+      }
   }
 
-  // 3. Intentar el inicio de sesión con Supabase
+  // 2. Intentar el inicio de sesión con Supabase Auth
   const { data, error } = await _supabase.auth.signInWithPassword({
     email: correo, 
     password: passwordInput,
   });
 
   if (error) {
-    // 4. Lógica en caso de error (credenciales incorrectas)
-    let intentosActuales = parseInt(localStorage.getItem(keyIntentos) || '0');
-    intentosActuales++;
-    
-    if (intentosActuales >= MAX_INTENTOS) {
-      const milisegundosBloqueo = TIEMPO_BLOQUEO_MINUTOS * 60 * 1000;
-      localStorage.setItem(keyBloqueo, Date.now() + milisegundosBloqueo);
-      localStorage.setItem(keyIntentos, '0'); 
-      
-      alert(`Has superado los ${MAX_INTENTOS} intentos. Cuenta bloqueada temporalmente en este equipo.`);
+    // 3. Lógica de error: Anotamos el fallo en la base de datos
+    const { data: falloData } = await _supabase.rpc('registrar_intento_fallido', { 
+        p_correo: correo, 
+        p_max: MAX_INTENTOS, 
+        p_minutos: TIEMPO_BLOQUEO_MINUTOS 
+    });
+
+    if (falloData && falloData.bloqueado) {
+        alert(`Has superado los ${MAX_INTENTOS} intentos. Cuenta bloqueada temporalmente.`);
     } else {
-      localStorage.setItem(keyIntentos, intentosActuales.toString());
-      
-      const errorDiv = document.getElementById('login-error');
-      if (errorDiv) {
-          errorDiv.style.display = 'block';
-          errorDiv.innerText = `Credenciales incorrectas para ${correo}. Intento ${intentosActuales} de ${MAX_INTENTOS}.`;
-      } else {
-          alert(`Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`);
-      }
+        const intentos = falloData ? falloData.intentos : 1;
+        const errorDiv = document.getElementById('login-error');
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerText = `Credenciales incorrectas. Intento ${intentos} de ${MAX_INTENTOS}.`;
+        } else {
+            alert(`Credenciales incorrectas. Intento ${intentos} de ${MAX_INTENTOS}.`);
+        }
     }
   } else {
-    // 5. LÓGICA DE ÉXITO: Contraseña correcta, verificamos si está activo
-
-    const { data: userData, error: userError } = await _supabase
+    // 4. Éxito: Limpiamos los fallos en la base de datos y guardamos sesión
+    await _supabase.rpc('desbloquear_usuario_manual', { uid: data.user.id });
+    
+    const { data: userData } = await _supabase
         .from('usuarios')
-        .select('activo, nombre_completo, privilegio_id')
+        .select('nombre_completo, privilegio_id')
         .eq('auth_id', data.user.id)
         .single();
 
-    if (userData && userData.activo === false) {
-        await _supabase.auth.signOut(); 
-        alert("❌ Tu cuenta está inactiva. Por favor, contacta al administrador.");
-        return; 
-    }
-
-    // SI LLEGA AQUÍ: Limpiamos los errores SOLO de este usuario
-    localStorage.removeItem(keyIntentos);
-    localStorage.removeItem(keyBloqueo);
-    
     localStorage.setItem('sesion_activa', JSON.stringify({
         nombre_completo: userData ? userData.nombre_completo : data.user.email,
         privilegio_id: userData ? userData.privilegio_id : 4 
@@ -476,36 +468,23 @@ async function guardarEdicionUsuario(authId, nuevoCi, nuevoNombre, nuevoPrivileg
 // ==========================================
 // FUNCIÓN 2: Desbloqueo Manual Rápido (Corregido)
 // ==========================================
-async function desbloquearUsuario(authId, correo) {
-    // Primero revisamos si realmente está bloqueado localmente
-    const keyBloqueo = `tiempoDesbloqueo_${correo}`;
-    const estaBloqueado = localStorage.getItem(keyBloqueo) && Date.now() < parseInt(localStorage.getItem(keyBloqueo));
-
-    if (!estaBloqueado) {
-        alert("Este usuario no está bloqueado actualmente.");
-        return;
-    }
-
-    if (!confirm(`¿Estás seguro de que deseas desbloquear los intentos de ${correo}?`)) {
+async function desbloquearUsuario(authId) {
+    if (!confirm("¿Deseas resetear los intentos de acceso y desbloquear a este usuario?")) {
         return;
     }
 
     try {
-        // 1. Limpiamos las variables de castigo del navegador
-        localStorage.removeItem(`intentosFallidos_${correo}`);
-        localStorage.removeItem(`tiempoDesbloqueo_${correo}`);
-
-        // 2. Opcional: Intentamos limpiar Supabase en silencio por si acaso (sin lanzar error si falla)
-        _supabase.rpc('desbloquear_usuario_manual', { uid: authId }).catch(() => {});
-
-        alert("¡Usuario desbloqueado con éxito!");
+        // Ejecutamos la función de Supabase para poner intentos a 0 y limpiar fecha
+        const { error } = await _supabase.rpc('desbloquear_usuario_manual', { uid: authId });
         
-        // 3. Recargamos la tabla para que el candado pase de rojo a verde
-        cargarUsuarios(); 
+        if (error) throw error;
+
+        alert("✅ Usuario desbloqueado. El candado volverá a estar verde.");
+        cargarUsuarios(); // Recarga la tabla al instante
         
     } catch (error) {
-        console.error("Error al desbloquear:", error);
-        alert("Ocurrió un problema al limpiar los datos.");
+        console.error("Error en servidor al desbloquear:", error);
+        alert("❌ No se pudo conectar con la base de datos.");
     }
 }
 
@@ -528,7 +507,7 @@ async function cargarUsuarios() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar usuarios.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar la base de datos.</td></tr>';
         return;
     }
 
@@ -539,21 +518,18 @@ async function cargarUsuarios() {
 
     const roles = { 1: 'Administrador', 2: 'Operador', 3: 'Encargado', 4: 'Lector' };
 
-    // Usamos .map con un bloque {} para poder incluir lógica antes de retornar el HTML
     tbody.innerHTML = usuarios.map(u => {
         
-        // 1. Verificamos si ESTE usuario está bloqueado en la memoria actual
-        const keyBloqueo = `tiempoDesbloqueo_${u.usuario}`;
-        const tiempoBloqueo = localStorage.getItem(keyBloqueo);
-        const estaBloqueado = tiempoBloqueo && Date.now() < parseInt(tiempoBloqueo);
+        // Verificamos el bloqueo directo desde la fecha de la base de datos
+        const fechaBloqueo = u.bloqueado_hasta ? new Date(u.bloqueado_hasta).getTime() : 0;
+        const estaBloqueado = fechaBloqueo > Date.now();
 
-        // 2. Definimos el diseño del botón según el estado
         let btnCandado = '';
         if (estaBloqueado) {
             // BLOQUEADO: Fondo Rojo, Candado Cerrado
             btnCandado = `
             <button class="btn btn-sm" style="background-color: #dc2626; color: white; margin-left: 5px;" 
-                onclick="desbloquearUsuario('${u.auth_id}', '${u.usuario}')" 
+                onclick="desbloquearUsuario('${u.auth_id}')" 
                 title="Usuario Bloqueado - Clic para desbloquear">
                 <i class="ri-lock-2-line"></i>
             </button>`;
@@ -561,8 +537,8 @@ async function cargarUsuarios() {
             // DESBLOQUEADO: Fondo Verde, Candado Abierto
             btnCandado = `
             <button class="btn btn-sm" style="background-color: #10b981; color: white; margin-left: 5px;" 
-                onclick="desbloquearUsuario('${u.auth_id}', '${u.usuario}')" 
-                title="Usuario Activo">
+                onclick="desbloquearUsuario('${u.auth_id}')" 
+                title="Usuario Activo - Clic para reiniciar contador a cero">
                 <i class="ri-lock-unlock-line"></i>
             </button>`;
         }
@@ -576,21 +552,16 @@ async function cargarUsuarios() {
             <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td>${new Date(u.created_at).toLocaleDateString('es-ES')}</td>
             <td>
-                <!-- Botón Editar -->
                 <button class="btn-icon" 
                     onclick="abrirModalEdicion('${u.auth_id}', '${u.ci}', '${u.nombre_completo}', '${u.privilegio_id}', ${u.activo})" 
                     title="Editar">
                     <i class="ri-edit-line"></i>
                 </button>
-
-                <!-- Botón Llave -->
                 <button class="btn btn-sm" style="background-color: #3b82f6; color: white; margin-left: 5px;" 
                     onclick="cambiarPassword('${u.auth_id}')" 
                     title="Restablecer Contraseña">
                     <i class="ri-key-line"></i>
                 </button>
-                
-                <!-- Botón Candado Dinámico -->
                 ${btnCandado}
             </td>
         </tr>
