@@ -57,7 +57,9 @@ async function iniciarSesion(event) {
             p_max: MAX_INTENTOS, 
             p_minutos: TIEMPO_BLOQUEO_MINUTOS
         });
-
+        if (falloError) {
+            console.error("🚨 Error al registrar el intento fallido en Supabase:", falloError);
+        }
         const intentos = falloData ? falloData.intentos : 1;
         
         if (falloData && falloData.bloqueado) {
