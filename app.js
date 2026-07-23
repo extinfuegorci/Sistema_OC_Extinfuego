@@ -52,13 +52,13 @@ async function iniciarSesion(event) {
     // 2. Si hay ERROR de contraseña o el correo no existe
     if (error) {
         // Anotamos el fallo en la base de datos (Suma los reintentos)
-        const { data: falloData } = await _supabase.rpc('registrar_intento_fallido', {
+        const { data: falloData, error: errorRpc } = await _supabase.rpc('registrar_intento_fallido', {
             p_correo: correo, 
             p_max: MAX_INTENTOS, 
             p_minutos: TIEMPO_BLOQUEO_MINUTOS
         });
-        if (falloError) {
-            console.error("🚨 Error al registrar el intento fallido en Supabase:", falloError);
+        if (errorRpc) {
+            console.error("🚨 Error al registrar el intento fallido en Supabase:", errorRpc);
         }
         const intentos = falloData ? falloData.intentos : 1;
         
@@ -282,66 +282,61 @@ async function cargarUsuarios() {
     }).join('');
 }
 
-async function crearNuevoUsuario(email, password) {
-    try {
-        // Obtenemos la URL de tu proyecto. (Reemplaza con tu URL real)
-        const URL_FUNCION = 'https://TU_PROJECT_ID.supabase.co/functions/v1/crear-usuario';
-        
-        // Obtenemos el token de la sesión actual (del administrador que está logueado)
-        const { data: { session } } = await supabase.auth.getSession();
 
-        // Hacemos la petición a nuestra nueva Edge Function
-        const response = await fetch(URL_FUNCION, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}` // Pasamos el token por seguridad
-            },
-            body: JSON.stringify({ 
-                email: email, 
-                password: password 
-            })
-        });
-
-        const resultado = await response.json();
-
-        // Validamos si hubo un error (ej. contraseña muy corta o correo duplicado)
-        if (!response.ok) {
-            throw new Error(resultado.error);
-        }
-
-        console.log("Usuario creado con éxito:", resultado.user);
-        alert("Usuario creado exitosamente. Ya puedes editar sus datos.");
-        
-        // Aquí puedes recargar tu tabla de usuarios o limpiar el formulario
-        // cargarUsuarios();
-        
-    } catch (error) {
-        console.error("Error al crear usuario:", error.message);
-        alert("Hubo un error: " + error.message);
-    }
-}
 
 async function guardarNuevoUsuario(event) {
     event.preventDefault();
     try {
-        const contraseniaHash = await hashearPassword(document.getElementById('usuario-pass').value);
-        const { error } = await _supabase.from('usuarios').insert([{
-            ci: document.getElementById('usuario-ci').value,
-            nombre_completo: document.getElementById('usuario-nombre').value,
-            usuario: document.getElementById('usuario-nick').value,
-            contrasenia_hash: contraseniaHash,
-            privilegio_id: parseInt(document.getElementById('rol-nuevo-usuario').value, 10), // <-- CORRECCIÓN: ID Alineado al HTML
-            activo: document.getElementById('usuario-activo').checked
+        const correo = document.getElementById('usuario-nick').value;
+        const password = document.getElementById('usuario-pass').value;
+        const ci = document.getElementById('usuario-ci').value;
+        const nombre = document.getElementById('usuario-nombre').value;
+        const privilegio_id = parseInt(document.getElementById('rol-nuevo-usuario').value, 10);
+        const activo = document.getElementById('usuario-activo').checked;
+
+        // 1. Creamos el usuario en Supabase Auth mediante la Edge Function
+        const URL_FUNCION = `${SUPABASE_URL}/functions/v1/crear-usuario`;
+        const { data: { session } } = await _supabase.auth.getSession();
+
+        const response = await fetch(URL_FUNCION, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ email: correo, password: password })
+        });
+
+        const resultado = await response.json();
+
+        // Validamos si la Edge Function devolvió algún error (ej. correo duplicado)
+        if (!response.ok) {
+            throw new Error(resultado.error || "Error al crear credenciales.");
+        }
+
+        const nuevoAuthId = resultado.user.id; // ¡Aquí capturamos el auth_id!
+
+        // 2. Guardamos los datos en tu tabla pública ENLAZANDO el auth_id
+        const { error: dbError } = await _supabase.from('usuarios').insert([{
+            auth_id: nuevoAuthId, // <-- ESTO CONECTA EL LOGIN CON TU TABLA
+            ci: ci,
+            nombre_completo: nombre,
+            usuario: correo,
+            privilegio_id: privilegio_id,
+            activo: activo
+            // Nota: Ya no guardamos contrasenia_hash aquí porque Supabase Auth la administra de forma segura.
         }]);
 
-        if (error) throw error;
+        if (dbError) throw dbError;
+
         alert('Usuario registrado exitosamente.');
         document.getElementById('form-nuevo-usuario').reset();
         cerrarModal('modal-nuevo-usuario');
         cargarUsuarios();
+
     } catch (error) {
-        alert("Ocurrió un error al registrar el usuario.");
+        console.error("Error al registrar usuario:", error);
+        alert("Ocurrió un error: " + error.message);
     }
 }
 
