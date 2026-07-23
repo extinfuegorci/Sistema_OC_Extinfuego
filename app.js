@@ -18,7 +18,7 @@ async function hashearPassword(password) {
 }
 // Función para proteger las rutas
 async function protegerRuta() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await _supabase.auth.getSession();
 
   // Revisar si la URL actual contiene el nombre de tu página de login
   // (Asegúrate de que 'login.html' sea el nombre exacto de tu archivo)
@@ -57,7 +57,7 @@ btnVerPassword.addEventListener('click', function() {
 protegerRuta();
 
 // Escuchar si la sesión se cierra mientras el usuario navega
-supabase.auth.onAuthStateChange((event, session) => {
+_supabase.auth.onAuthStateChange((event, session) => {
   const esPaginaLogin = window.location.pathname.includes('login.html');
   if ((event === 'SIGNED_OUT' || !session) && !esPaginaLogin) {
     window.location.replace('login.html');
@@ -68,7 +68,13 @@ supabase.auth.onAuthStateChange((event, session) => {
 // A partir de aquí hacia abajo, puedes dejar tu código actual
 // con la función iniciarSesion() y demás...
 // --------------------------------------------------------
-async function iniciarSesion(correo, password) {
+async function iniciarSesion(event) {
+  event.preventDefault(); // Fundamental: evita que la página se recargue al darle click al botón
+
+  // Obtenemos los valores de los inputs usando sus IDs del HTML
+  const correo = document.getElementById('login-user').value;
+  const passwordInput = document.getElementById('input-password').value;
+
   // 1. Verificar si el usuario está actualmente bloqueado en este navegador
   const tiempoDesbloqueo = localStorage.getItem('tiempoDesbloqueo');
   
@@ -78,10 +84,11 @@ async function iniciarSesion(correo, password) {
     return; // Detiene la ejecución, no consulta a Supabase
   }
 
-  // 2. Intentar el inicio de sesión con Supabase
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: correo,
-    password: password,
+  // 2. Intentar el inicio de sesión con Supabase (usando _supabase, no supabase global)
+  // Nota: Asegúrate de que el usuario esté introduciendo un correo válido en el campo de "Usuario"
+  const { data, error } = await _supabase.auth.signInWithPassword({
+    email: correo, 
+    password: passwordInput,
   });
 
   if (error) {
@@ -99,16 +106,29 @@ async function iniciarSesion(correo, password) {
     } else {
       // Guardar el nuevo número de intentos fallidos
       localStorage.setItem('intentosFallidos', intentosActuales.toString());
-      alert(`Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`);
+      
+      // Mostrar el mensaje en el DIV de error de tu HTML
+      const errorDiv = document.getElementById('login-error');
+      if (errorDiv) {
+          errorDiv.style.display = 'block';
+          errorDiv.innerText = `Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`;
+      } else {
+          alert(`Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`);
+      }
     }
   } else {
     // 4. Lógica en caso de éxito
-    // Limpiamos cualquier historial de errores previo
     localStorage.removeItem('intentosFallidos');
     localStorage.removeItem('tiempoDesbloqueo');
     
-    alert("Inicio de sesión exitoso. Redirigiendo...");
-    // Aquí va tu código normal de redirección al panel (ej. window.location.href = 'index.html')
+    // Guardamos la sesión localmente para tu función verificarSesionPrevia()
+    localStorage.setItem('sesion_activa', JSON.stringify({
+        nombre_completo: data.user.email, // Tomamos el email temporalmente como nombre
+        privilegio_id: 1 // Forzamos rol de admin para que pases la pantalla de login (luego lo conectaremos a tu tabla perfiles)
+    }));
+
+    // Recargamos la página para que verificarSesionPrevia() oculte el login y muestre el dashboard
+    window.location.reload(); 
   }
 }
 
