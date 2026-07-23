@@ -571,6 +571,56 @@
             </div>
         </div>
     </div>
+<!-- ==========================================
+     MODAL: EDITAR USUARIO
+     ========================================== -->
+<div id="modal-editar-usuario" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3><i class="ri-edit-user-line"></i> Editar Usuario</h3>
+            <!-- Asumo que tienes una función cerrarModal, si no, usa la tuya -->
+            <button class="btn-close" onclick="document.getElementById('modal-editar-usuario').style.display='none'"><i class="ri-close-line"></i></button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Campo oculto para guardar el ID de Supabase sin que se vea -->
+            <input type="hidden" id="edit-auth-id">
+            
+            <div class="form-group mb-15">
+                <label for="edit-ci">Carnet de Identidad (CI)</label>
+                <input type="text" id="edit-ci" class="form-control" placeholder="Ej: 1234567">
+            </div>
+            
+            <div class="form-group mb-15">
+                <label for="edit-nombre">Nombre Completo</label>
+                <input type="text" id="edit-nombre" class="form-control" placeholder="Nombre y Apellido">
+            </div>
+            
+            <div class="form-group mb-15">
+                <label for="edit-privilegio">Privilegio / Rol</label>
+                <select id="edit-privilegio" class="form-control">
+                    <!-- Ajusta los "value" a los IDs reales de tu tabla de privilegios -->
+                    <option value="1">Administrador</option>
+                    <option value="2">Usuario / Técnico</option>
+                </select>
+            </div>
+            
+            <div class="form-group mb-15">
+                <label for="edit-estado">Estado de la Cuenta</label>
+                <select id="edit-estado" class="form-control">
+                    <option value="true">Activo (Puede ingresar)</option>
+                    <option value="false">Inactivo (No puede ingresar)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="document.getElementById('modal-editar-usuario').style.display='none'">Cancelar</button>
+            <button class="btn btn-primary" onclick="procesarEdicion()">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+    
 <script src="app.js"></script>
 </body>
 </html>
