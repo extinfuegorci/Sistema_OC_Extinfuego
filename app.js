@@ -72,45 +72,40 @@ _supabase.auth.onAuthStateChange((event, session) => {
 // con la función iniciarSesion() y demás...
 // --------------------------------------------------------
 async function iniciarSesion(event) {
-  event.preventDefault(); // Fundamental: evita que la página se recargue al darle click al botón
+  event.preventDefault();
 
-  // Obtenemos los valores de los inputs usando sus IDs del HTML
   const correo = document.getElementById('login-user').value;
   const passwordInput = document.getElementById('input-password').value;
 
-  // 1. Verificar si el usuario está actualmente bloqueado en este navegador
+  // 1. Verificar si el usuario está actualmente bloqueado (¡Se mantiene intacto!)
   const tiempoDesbloqueo = localStorage.getItem('tiempoDesbloqueo');
   
   if (tiempoDesbloqueo && Date.now() < parseInt(tiempoDesbloqueo)) {
     const minutosRestantes = Math.ceil((parseInt(tiempoDesbloqueo) - Date.now()) / 60000);
     alert(`Por seguridad, debes esperar ${minutosRestantes} minutos antes de volver a intentarlo.`);
-    return; // Detiene la ejecución, no consulta a Supabase
+    return;
   }
 
-  // 2. Intentar el inicio de sesión con Supabase (usando _supabase, no supabase global)
-  // Nota: Asegúrate de que el usuario esté introduciendo un correo válido en el campo de "Usuario"
+  // 2. Intentar el inicio de sesión con Supabase
   const { data, error } = await _supabase.auth.signInWithPassword({
     email: correo, 
     password: passwordInput,
   });
 
   if (error) {
-    // 3. Lógica en caso de error (credenciales incorrectas)
+    // 3. Lógica en caso de error: Intentos fallidos y bloqueo (¡Se mantiene intacto!)
     let intentosActuales = parseInt(localStorage.getItem('intentosFallidos') || '0');
     intentosActuales++;
     
     if (intentosActuales >= MAX_INTENTOS) {
-      // Bloquear: calcular la hora futura en milisegundos
       const milisegundosBloqueo = TIEMPO_BLOQUEO_MINUTOS * 60 * 1000;
       localStorage.setItem('tiempoDesbloqueo', Date.now() + milisegundosBloqueo);
-      localStorage.setItem('intentosFallidos', '0'); // Reiniciar el contador para el futuro
+      localStorage.setItem('intentosFallidos', '0'); 
       
       alert(`Has superado los ${MAX_INTENTOS} intentos. Sistema bloqueado temporalmente.`);
     } else {
-      // Guardar el nuevo número de intentos fallidos
       localStorage.setItem('intentosFallidos', intentosActuales.toString());
       
-      // Mostrar el mensaje en el DIV de error de tu HTML
       const errorDiv = document.getElementById('login-error');
       if (errorDiv) {
           errorDiv.style.display = 'block';
@@ -120,17 +115,33 @@ async function iniciarSesion(event) {
       }
     }
   } else {
-    // 4. Lógica en caso de éxito
+    // 4. LÓGICA DE ÉXITO: Contraseña correcta, ahora verificamos si está activo
+
+    // Hacemos la consulta a tu tabla 'usuarios'
+    const { data: userData, error: userError } = await _supabase
+        .from('usuarios')
+        .select('activo, nombre_completo, privilegio_id') // Traemos también sus datos reales
+        .eq('auth_id', data.user.id)
+        .single();
+
+    // Verificamos si la cuenta está desactivada
+    if (userData && userData.activo === false) {
+        await _supabase.auth.signOut(); // Deslogueamos de Supabase inmediatamente
+        alert("❌ Tu cuenta está inactiva. Por favor, contacta al administrador.");
+        return; // Salimos de la función sin guardar sesión ni limpiar intentos
+    }
+
+    // SI LLEGA AQUÍ: La contraseña es correcta Y el usuario está activo
     localStorage.removeItem('intentosFallidos');
     localStorage.removeItem('tiempoDesbloqueo');
     
-    // Guardamos la sesión localmente para tu función verificarSesionPrevia()
+    // Guardamos la sesión localmente YA CON LOS DATOS REALES (adiós al forzado temporal)
     localStorage.setItem('sesion_activa', JSON.stringify({
-        nombre_completo: data.user.email, // Tomamos el email temporalmente como nombre
-        privilegio_id: 1 // Forzamos rol de admin para que pases la pantalla de login (luego lo conectaremos a tu tabla perfiles)
+        nombre_completo: userData ? userData.nombre_completo : data.user.email,
+        privilegio_id: userData ? userData.privilegio_id : 4 // Si no hay datos, le damos rol Lector (4) por seguridad
     }));
 
-    // Recargamos la página para que verificarSesionPrevia() oculte el login y muestre el dashboard
+    // Recargamos la página
     window.location.reload(); 
   }
 }
@@ -602,12 +613,17 @@ async function cargarUsuarios() {
 // ==========================================
 // ABRIR MODAL CON DATOS CARGADOS
 // ==========================================
-function abrirModalEdicion(authId, ci, nombre, privilegio, activo) {
-    // Llenamos los inputs del modal con los datos de la fila
-    document.getElementById('edit-auth-id').value = authId;
-    document.getElementById('edit-ci').value = ci !== 'null' ? ci : '';
-    document.getElementById('edit-nombre').value = nombre !== 'null' ? nombre : '';
-    document.getElementById('edit-privilegio').value = privilegio;
+function abrirModalEdicion(auth_id, ci, nombre, privilegio_id, activo) {
+    // Llenamos los inputs de texto
+    document.getElementById('edit-ci').value = ci;
+    document.getElementById('edit-nombre').value = nombre;
+    
+    // SELECCIONAMOS EL ROL:
+    // Asegúrate de que el id del <select> sea correcto (ej: 'edit-privilegio')
+    document.getElementById('edit-privilegio').value = privilegio_id; 
+
+    // SELECCIONAMOS EL ESTADO:
+    // Convertimos el booleano a texto ('true' o 'false') si tus <option value="..."> están así
     document.getElementById('edit-estado').value = activo ? 'true' : 'false';
 
     // Mostramos el modal
