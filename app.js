@@ -466,7 +466,57 @@ async function guardarNuevoUsuario(event) {
         alert("Ocurrió un error al registrar el usuario.");
     }
 }
+// ==========================================
+// FUNCIÓN 1: Actualizar Datos e Inactivar
+// ==========================================
+async function guardarEdicionUsuario(authId, nuevoCi, nuevoNombre, nuevoPrivilegio, estaActivo) {
+    try {
+        const { data, error } = await _supabase
+            .from('usuarios')
+            .update({
+                ci: nuevoCi,
+                nombre_completo: nuevoNombre,
+                privilegio_id: nuevoPrivilegio,
+                activo: estaActivo // true para activo, false para Inactivar
+            })
+            .eq('auth_id', authId);
 
+        if (error) throw error;
+
+        alert("Los datos del usuario se han actualizado correctamente.");
+        // Aquí deberías llamar a la función que recarga tu tabla HTML de usuarios
+        // cargarTablaUsuarios(); 
+        
+    } catch (error) {
+        console.error("Error al actualizar usuario:", error);
+        alert("Hubo un problema al guardar los cambios.");
+    }
+}
+
+// ==========================================
+// FUNCIÓN 2: Desbloqueo Manual Rápido
+// ==========================================
+async function desbloquearUsuario(authId) {
+    // Preguntamos para confirmar antes de ejecutar
+    if (!confirm("¿Estás seguro de que deseas desbloquear a este usuario para que vuelva a intentar ingresar?")) {
+        return;
+    }
+
+    try {
+        // Llamamos a la función SQL que creamos en el paso 1 usando .rpc()
+        const { error } = await _supabase.rpc('desbloquear_usuario_manual', { 
+            uid: authId 
+        });
+
+        if (error) throw error;
+
+        alert("¡Usuario desbloqueado con éxito! Ya puede intentar ingresar inmediatamente.");
+        
+    } catch (error) {
+        console.error("Error al desbloquear:", error);
+        alert("No se pudo desbloquear al usuario. Revisa la consola.");
+    }
+}
 // ==========================================
 // 7. INICIALIZACIÓN DE LA APLICACIÓN
 // ==========================================
