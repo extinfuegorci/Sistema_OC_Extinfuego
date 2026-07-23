@@ -130,3 +130,59 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
 .toggle-password:hover {
   color: #333; /* Se oscurece un poco al pasar el mouse */
 }
+/* Contenedor principal para mantener todo alineado */
+.user-profile-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Empuja el texto a la izq y el botón a la der */
+    gap: 15px;
+    padding: 10px 15px;
+    background-color: transparent; /* O el color oscuro que estés usando de fondo */
+    width: 100%;
+}
+
+/* Agrupación del icono de usuario y el texto */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden; /* Evita que un correo muy largo empuje al botón */
+}
+
+.user-text {
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================
+   DISEÑO DEL BOTÓN DE CERRAR SESIÓN
+   ========================================= */
+.btn-logout-redondo {
+    background-color: #ef4444; /* Rojo brillante y llamativo */
+    border: none;
+    border-radius: 50%; /* Lo hace perfectamente redondo */
+    width: 42px;
+    height: 42px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Sombra para que resalte y parezca clickeable */
+    transition: all 0.2s ease-in-out;
+    flex-shrink: 0; /* IMPIDE que el botón se aplaste si no hay espacio */
+}
+
+/* Estilo del icono (SVG) dentro del botón */
+.btn-logout-redondo svg {
+    width: 22px;
+    height: 22px;
+    fill: #ffffff; /* Icono estrictamente blanco */
+    margin-left: 2px; /* Pequeño ajuste óptico para centrar el icono de salida */
+}
+
+/* Efecto al pasar el mouse por encima */
+.btn-logout-redondo:hover {
+    background-color: #dc2626; /* Rojo ligeramente más oscuro */
+    transform: scale(1.1); /* Efecto de crecimiento al hacer hover */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+}
