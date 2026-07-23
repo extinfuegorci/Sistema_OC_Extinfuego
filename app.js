@@ -311,15 +311,18 @@ async function guardarNuevoUsuario(event) {
 
         const nuevoAuthId = resultado.user.id; // ¡Capturamos el ID seguro de Auth!
 
-        // 2. Guardamos los datos en tu tabla pública ENLAZANDO el auth_id
-        const { error: dbError } = await _supabase.from('usuarios').insert([{
+        // 2. Guardamos o actualizamos los datos en tu tabla pública ENLAZANDO el auth_id
+        // Cambiamos .insert() por .upsert() para evitar el choque de duplicados
+        const { error: dbError } = await _supabase.from('usuarios').upsert([{
             auth_id: nuevoAuthId,
             ci: ci,
             nombre_completo: nombre,
             usuario: correo,
             privilegio_id: privilegio_id,
             activo: activo
-        }]);
+        }], { 
+            onConflict: 'usuario' 
+        });
 
         if (dbError) throw dbError;
 
