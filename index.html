@@ -51,7 +51,10 @@
             <p style="margin-bottom: 20px; color: #64748b;">Ingrese sus credenciales</p>
             <form id="form-login" onsubmit="iniciarSesion(event)">
                 <input type="text" id="login-user" placeholder="Nombre de usuario (Login)" required autocomplete="username">
-                <input type="password" id="login-pass" placeholder="Contraseña" required autocomplete="current-password">
+                <div class="contenedor-password">
+                  <input type="password" id="input-password" placeholder="Ingresa tu contraseña" required>
+                  <button type="button" id="btn-ver-password" title="Mostrar/Ocultar contraseña">👁️</button>
+                </div>
                 <button type="submit" class="btn btn-primary btn-lg">Iniciar Sesión</button>
             </form>
             <div id="login-error" style="color: red; margin-top: 15px; font-size: 14px; display: none;">
