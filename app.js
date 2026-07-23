@@ -282,6 +282,46 @@ async function cargarUsuarios() {
     }).join('');
 }
 
+async function crearNuevoUsuario(email, password) {
+    try {
+        // Obtenemos la URL de tu proyecto. (Reemplaza con tu URL real)
+        const URL_FUNCION = 'https://TU_PROJECT_ID.supabase.co/functions/v1/crear-usuario';
+        
+        // Obtenemos el token de la sesión actual (del administrador que está logueado)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // Hacemos la petición a nuestra nueva Edge Function
+        const response = await fetch(URL_FUNCION, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}` // Pasamos el token por seguridad
+            },
+            body: JSON.stringify({ 
+                email: email, 
+                password: password 
+            })
+        });
+
+        const resultado = await response.json();
+
+        // Validamos si hubo un error (ej. contraseña muy corta o correo duplicado)
+        if (!response.ok) {
+            throw new Error(resultado.error);
+        }
+
+        console.log("Usuario creado con éxito:", resultado.user);
+        alert("Usuario creado exitosamente. Ya puedes editar sus datos.");
+        
+        // Aquí puedes recargar tu tabla de usuarios o limpiar el formulario
+        // cargarUsuarios();
+        
+    } catch (error) {
+        console.error("Error al crear usuario:", error.message);
+        alert("Hubo un error: " + error.message);
+    }
+}
+
 async function guardarNuevoUsuario(event) {
     event.preventDefault();
     try {
