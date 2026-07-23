@@ -93,3 +93,40 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
     background-color: #f4f7fe;
     z-index: 9999; /* Asegura que quede por encima de todo */
 }
+/* Contenedor relativo para posicionar el icono adentro */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px; /* Espacio antes del botón rojo de Iniciar Sesión */
+}
+
+/* Estilos del input (ajusta el borde y colores según tu diseño actual) */
+.password-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  padding-right: 40px; /* MUY IMPORTANTE: Deja espacio para que el texto no pise el icono */
+  border: 1px solid #ced4da; /* Color de borde típico */
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Estilos para que el botón sea invisible y se posicione a la derecha */
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%); /* Centra el icono verticalmente */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d; /* Color gris profesional */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-password:hover {
+  color: #333; /* Se oscurece un poco al pasar el mouse */
+}
