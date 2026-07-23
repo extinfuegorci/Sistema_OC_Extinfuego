@@ -592,7 +592,7 @@ function abrirModalEdicion(authId, ci, nombre, privilegio, activo) {
     document.getElementById('edit-estado').value = activo ? 'true' : 'false';
 
     // Mostramos el modal
-    document.getElementById('modal-editar-usuario').style.display = 'block';
+    document.getElementById('modal-editar-usuario').style.display = 'flex';
 }
 
 // ==========================================
