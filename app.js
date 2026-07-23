@@ -17,22 +17,20 @@ async function hashearPassword(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 // Función para proteger las rutas
+// Función para proteger las rutas (Adaptado para un solo archivo - SPA)
 async function protegerRuta() {
   const { data: { session } } = await _supabase.auth.getSession();
+  const loginSection = document.getElementById('login-section');
+  const appLayout = document.getElementById('app-layout');
 
-  // Revisar si la URL actual contiene el nombre de tu página de login
-  // (Asegúrate de que 'login.html' sea el nombre exacto de tu archivo)
-  const esPaginaLogin = window.location.pathname.includes('login.html');
-
-  // Si NO hay sesión y NO estamos en el login, expulsar al usuario al login
-  if (!session && !esPaginaLogin) {
-    window.location.replace('login.html'); 
-  }
-  
-  // Opcional: Si SÍ hay sesión activa y entran por error al login, 
-  // mandarlos directo al panel principal para que no vuelvan a poner la clave
-  if (session && esPaginaLogin) {
-    window.location.replace('index.html'); // Cambia 'index.html' por el nombre de tu panel
+  if (session) {
+    // Si hay sesión, ocultamos el login y mostramos el panel
+    if(loginSection) loginSection.style.display = 'none';
+    if(appLayout) appLayout.style.display = 'flex';
+  } else {
+    // Si NO hay sesión, mostramos el login y ocultamos el panel
+    if(loginSection) loginSection.style.display = 'flex';
+    if(appLayout) appLayout.style.display = 'none';
   }
 }
 // Dibujo vectorial del ojo normal
@@ -57,10 +55,15 @@ btnVerPassword.addEventListener('click', function() {
 protegerRuta();
 
 // Escuchar si la sesión se cierra mientras el usuario navega
+// Escuchar si la sesión se cierra mientras el usuario navega
 _supabase.auth.onAuthStateChange((event, session) => {
-  const esPaginaLogin = window.location.pathname.includes('login.html');
-  if ((event === 'SIGNED_OUT' || !session) && !esPaginaLogin) {
-    window.location.replace('login.html');
+  const loginSection = document.getElementById('login-section');
+  const appLayout = document.getElementById('app-layout');
+
+  if (event === 'SIGNED_OUT' || !session) {
+    // Al cerrar sesión, volvemos a mostrar la pantalla de login
+    if(loginSection) loginSection.style.display = 'flex';
+    if(appLayout) appLayout.style.display = 'none';
   }
 });
 
