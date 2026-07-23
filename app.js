@@ -425,7 +425,21 @@ async function cargarUsuarios() {
             <td>${roles[u.privilegio_id]}</td>
             <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td>${new Date(u.created_at).toLocaleDateString()}</td>
-            <td><button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button></td>
+            <td>
+                <!-- Botón de Editar con el onclick agregado y variable "u" -->
+                <button class="btn-icon" 
+                    onclick="abrirModalEdicion('${u.auth_id}', '${u.ci}', '${u.nombre_completo}', '${u.privilegio_id}', ${u.activo})" 
+                    title="Editar">
+                    <i class="ri-edit-line"></i>
+                </button>
+                
+                <!-- Botón de Restablecer Contraseña corregido con variable "u" y dentro del mismo <td> -->
+                <button class="btn btn-sm" style="background-color: #3b82f6; color: white;" 
+                    onclick="cambiarPassword('${u.auth_id}')" 
+                    title="Restablecer Contraseña">
+                    <i class="ri-key-line"></i>
+                </button>
+            </td>
         </tr>
     `).join('');
 }
@@ -629,6 +643,40 @@ async function procesarEdicion() {
     } catch (error) {
         console.error("Error al actualizar:", error);
         alert("Ocurrió un error al actualizar los datos.");
+    }
+}
+
+// ==========================================
+// FUNCIÓN: CAMBIAR CONTRASEÑA MANUALMENTE
+// ==========================================
+async function cambiarPassword(authId) {
+    const nuevaPassword = prompt("Ingresa la nueva contraseña para este usuario (mínimo 6 caracteres):");
+    
+    // Si el administrador cancela o deja vacío, no hacemos nada
+    if (!nuevaPassword) {
+        return; 
+    }
+    
+    // Validación básica
+    if (nuevaPassword.length < 6) {
+        alert("⚠️ La contraseña debe tener al menos 6 caracteres.");
+        return;
+    }
+
+    try {
+        // Llamamos a la función SQL que acabamos de crear
+        const { error } = await _supabase.rpc('cambiar_password_usuario', { 
+            uid: authId,
+            nueva_pass: nuevaPassword
+        });
+
+        if (error) throw error;
+
+        alert("✅ Contraseña actualizada con éxito. El usuario ya puede ingresar con la nueva clave.");
+        
+    } catch (error) {
+        console.error("Error al cambiar contraseña:", error);
+        alert("❌ Hubo un error al intentar cambiar la contraseña.");
     }
 }
 
