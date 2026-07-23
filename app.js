@@ -517,6 +517,121 @@ async function desbloquearUsuario(authId) {
         alert("No se pudo desbloquear al usuario. Revisa la consola.");
     }
 }
+
+// ==========================================
+// CARGAR TABLA DE USUARIOS
+// ==========================================
+async function cargarUsuarios() {
+    const tbody = document.getElementById('tabla-usuarios-body');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando usuarios...</td></tr>';
+
+    try {
+        // Pedimos los datos a la tabla 'usuarios'
+        // NOTA: Ajusta 'privilegio_id' o 'roles' según cómo se llame en tu base de datos
+        const { data: usuarios, error } = await _supabase
+            .from('usuarios')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        tbody.innerHTML = ''; // Limpiamos el mensaje de "cargando"
+
+        usuarios.forEach(user => {
+            // Dar formato a la fecha
+            const fecha = new Date(user.created_at).toLocaleDateString('es-ES');
+            
+            // Estado visual
+            const badgeEstado = user.activo 
+                ? `<span style="color: green; font-weight: bold;">Activo</span>` 
+                : `<span style="color: red; font-weight: bold;">Inactivo</span>`;
+
+            // Creamos la fila
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${user.ci || '-'}</td>
+                <td>${user.nombre_completo || '-'}</td>
+                <td>${user.email || 'Sin correo'}</td>
+                <td>${user.privilegio_id || 'Sin rol'}</td>
+                <td>${badgeEstado}</td>
+                <td>${fecha}</td>
+                <td>
+                    <!-- Botón para Editar (Pasa todos los datos al modal) -->
+                    <button class="btn btn-sm btn-primary" 
+                        onclick="abrirModalEdicion('${user.auth_id}', '${user.ci}', '${user.nombre_completo}', '${user.privilegio_id}', ${user.activo})" 
+                        title="Editar Usuario">
+                        <i class="ri-edit-line"></i>
+                    </button>
+                    
+                    <!-- Botón para Desbloquear de emergencia -->
+                    <button class="btn btn-sm" style="background-color: #f59e0b; color: white;" 
+                        onclick="desbloquearUsuario('${user.auth_id}')" 
+                        title="Desbloquear intentos fallidos">
+                        <i class="ri-lock-unlock-line"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error al cargar usuarios:", error);
+        tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error al cargar la lista</td></tr>`;
+    }
+}
+
+// ==========================================
+// ABRIR MODAL CON DATOS CARGADOS
+// ==========================================
+function abrirModalEdicion(authId, ci, nombre, privilegio, activo) {
+    // Llenamos los inputs del modal con los datos de la fila
+    document.getElementById('edit-auth-id').value = authId;
+    document.getElementById('edit-ci').value = ci !== 'null' ? ci : '';
+    document.getElementById('edit-nombre').value = nombre !== 'null' ? nombre : '';
+    document.getElementById('edit-privilegio').value = privilegio;
+    document.getElementById('edit-estado').value = activo ? 'true' : 'false';
+
+    // Mostramos el modal
+    document.getElementById('modal-editar-usuario').style.display = 'block';
+}
+
+// ==========================================
+// PROCESAR EL BOTÓN "GUARDAR CAMBIOS" DEL MODAL
+// ==========================================
+async function procesarEdicion() {
+    // 1. Obtenemos lo que el administrador escribió en el modal
+    const authId = document.getElementById('edit-auth-id').value;
+    const nuevoCi = document.getElementById('edit-ci').value;
+    const nuevoNombre = document.getElementById('edit-nombre').value;
+    const nuevoPrivilegio = document.getElementById('edit-privilegio').value;
+    const estaActivo = document.getElementById('edit-estado').value === 'true'; // Convierte el string a booleano
+
+    // 2. Usamos la función de actualización de Supabase que armamos antes
+    try {
+        const { error } = await _supabase
+            .from('usuarios')
+            .update({
+                ci: nuevoCi,
+                nombre_completo: nuevoNombre,
+                privilegio_id: parseInt(nuevoPrivilegio),
+                activo: estaActivo
+            })
+            .eq('auth_id', authId);
+
+        if (error) throw error;
+
+        alert("Usuario actualizado correctamente");
+        
+        // 3. Cerramos el modal y recargamos la tabla para ver los cambios
+        document.getElementById('modal-editar-usuario').style.display = 'none';
+        cargarUsuarios(); 
+
+    } catch (error) {
+        console.error("Error al actualizar:", error);
+        alert("Ocurrió un error al actualizar los datos.");
+    }
+}
+
 // ==========================================
 // 7. INICIALIZACIÓN DE LA APLICACIÓN
 // ==========================================
