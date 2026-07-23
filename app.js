@@ -432,6 +432,11 @@ async function cargarUsuarios() {
                     title="Editar">
                     <i class="ri-edit-line"></i>
                 </button>
+
+                <!-- Botón Llave -->
+                <button class="btn btn-sm" style="background-color: #3b82f6; color: white; margin-left: 5px;" onclick="cambiarPassword('${u.auth_id}')" title="Restablecer Contraseña">
+                    <i class="ri-key-line"></i>
+                </button>
                 
                 <!-- Botón de Restablecer Contraseña corregido con variable "u" y dentro del mismo <td> -->
                 <button class="btn btn-sm" style="background-color: #3b82f6; color: white;" 
