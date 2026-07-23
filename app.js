@@ -35,16 +35,22 @@ async function protegerRuta() {
     window.location.replace('index.html'); // Cambia 'index.html' por el nombre de tu panel
   }
 }
+// Dibujo vectorial del ojo normal
+const svgOjo = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+
+// Dibujo vectorial del ojo tachado (cerrado)
+const svgOjoCerrado = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
 btnVerPassword.addEventListener('click', function() {
-  // Verificamos el tipo actual del input
   const tipoActual = inputPassword.getAttribute('type');
+  const iconoSvg = this.querySelector('svg');
   
   if (tipoActual === 'password') {
     inputPassword.setAttribute('type', 'text');
-    this.textContent = '🙈'; // Cambia el icono cuando se ve la clave
+    iconoSvg.innerHTML = svgOjoCerrado; // Cambia al ojo tachado
   } else {
     inputPassword.setAttribute('type', 'password');
-    this.textContent = '👁️'; // Vuelve al icono original
+    iconoSvg.innerHTML = svgOjo; // Vuelve al ojo normal
   }
 });
 // Ejecutar la protección apenas cargue el script
