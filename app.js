@@ -43,25 +43,21 @@ async function iniciarSesion(event) {
     const correo = document.getElementById('login-user').value;
     const passwordInput = document.getElementById('input-password').value;
 
-    // 1. Verificamos bloqueos antes de procesar la contraseña
-    const { data: estadoData } = await _supabase.rpc('verificar_estado_login', { p_correo: correo });
-    
-    if (estadoData && estadoData.existe) {
-        if (!estadoData.activo) return alert("❌ Tu cuenta está inactiva. Contacta al administrador.");
-        if (estadoData.bloqueado) {
-            const tiempoRestante = Math.ceil((new Date(estadoData.hasta).getTime() - Date.now()) / 60000);
-            return alert(`Cuenta bloqueada. Espera ${tiempoRestante} minutos.`);
-        }
-    }
+    // 1. Intentamos el inicio de sesión con Supabase Auth PRIMERO
+    const { data, error } = await _supabase.auth.signInWithPassword({
+        email: correo,
+        password: passwordInput,
+    });
 
-    // 2. Intentar autenticación
-    const { data, error } = await _supabase.auth.signInWithPassword({ email: correo, password: passwordInput });
-
+    // 2. Si hay ERROR de contraseña o el correo no existe
     if (error) {
-        // Fallo: Penalizar en Base de Datos
-        const { data: falloData } = await _supabase.rpc('registrar_intento_fallido', { 
-            p_correo: correo, p_max: MAX_INTENTOS, p_minutos: TIEMPO_BLOQUEO_MINUTOS 
+        // Anotamos el fallo en la base de datos (Suma los reintentos)
+        const { data: falloData } = await _supabase.rpc('registrar_intento_fallido', {
+            p_correo: correo, 
+            p_max: MAX_INTENTOS, 
+            p_minutos: TIEMPO_BLOQUEO_MINUTOS
         });
+
         const intentos = falloData ? falloData.intentos : 1;
         
         if (falloData && falloData.bloqueado) {
@@ -75,24 +71,48 @@ async function iniciarSesion(event) {
                 alert(`Credenciales incorrectas. Intento ${intentos} de ${MAX_INTENTOS}.`);
             }
         }
-    } else {
-        // Éxito: Limpiar historial de bloqueos
-        await _supabase.rpc('desbloquear_usuario_manual', { uid: data.user.id });
-        
-        // Hacemos un JOIN directo con "privilegios" para obtener el nombre real
-        const { data: userData } = await _supabase
+        return; // Detenemos la ejecución aquí, no avanza.
+    }
+
+    // 3. Si la contraseña es CORRECTA, verificamos las REGLAS en tu tabla pública usando su auth_id infalible
+    if (data.user) {
+        const { data: userData, error: userError } = await _supabase
             .from('usuarios')
-            .select(`nombre_completo, privilegio_id, privilegios(nombre)`)
+            .select('activo, bloqueado_hasta, nombre_completo, privilegio_id, privilegios(nombre)')
             .eq('auth_id', data.user.id)
             .single();
 
-        localStorage.setItem('sesion_activa', JSON.stringify({
-            nombre_completo: userData?.nombre_completo || data.user.email,
-            privilegio_id: userData?.privilegio_id || 4,
-            rol_nombre: userData?.privilegios?.nombre || 'Desconocido' // Guardamos el nombre dinámico
-        }));
-        
-        window.location.reload(); 
+        if (userData) {
+            // REGLA A: ¿El administrador lo marcó como INACTIVO (False)?
+            if (userData.activo === false) {
+                await _supabase.auth.signOut(); // LO EXPULSAMOS AL INSTANTE
+                return alert("❌ Tu cuenta está inactiva. Por favor, contacta al administrador.");
+            }
+
+            // REGLA B: ¿Acertó la clave pero su tiempo de castigo (candado rojo) aún no termina?
+            const fechaBloqueo = userData.bloqueado_hasta ? new Date(userData.bloqueado_hasta).getTime() : 0;
+            if (fechaBloqueo > Date.now()) {
+                await _supabase.auth.signOut(); // LO EXPULSAMOS AL INSTANTE
+                const tiempoRestante = Math.ceil((fechaBloqueo - Date.now()) / 60000);
+                return alert(`Tu cuenta sigue bloqueada por intentos fallidos. Debes esperar ${tiempoRestante} minutos.`);
+            }
+
+            // REGLA C: ÉXITO TOTAL. Pasó la contraseña, está activo y no tiene bloqueos.
+            // Limpiamos su historial de fallos para dejar su candado en verde
+            await _supabase.rpc('desbloquear_usuario_manual', { uid: data.user.id });
+
+            localStorage.setItem('sesion_activa', JSON.stringify({
+                nombre_completo: userData.nombre_completo || data.user.email,
+                privilegio_id: userData.privilegio_id || 4,
+                rol_nombre: userData.privilegios ? userData.privilegios.nombre : 'Desconocido'
+            }));
+
+            window.location.reload(); // Entramos al panel
+        } else {
+            // Si el usuario existe en Auth pero no se copió a tu tabla pública (prevención de errores)
+            await _supabase.auth.signOut();
+            return alert("❌ Error: Tu usuario no figura en la base de datos pública. Contacta a soporte.");
+        }
     }
 }
 
