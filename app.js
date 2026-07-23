@@ -298,6 +298,12 @@ async function guardarNuevoUsuario(event) {
             alert("⚠️ La contraseña es muy corta. Debe tener al menos 6 caracteres.");
             return; // El 'return' detiene la función aquí mismo y no envía nada a Supabase
         }
+
+        const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regexCorreo.test(correo)) {
+            alert("⚠️ El formato del correo no es válido. Asegúrate de incluir el símbolo '@' y un dominio (ejemplo: nombre@empresa.com).");
+            return; 
+        }
         
         // 1. Llamamos a la Edge Function usando el método oficial de Supabase (evita el error JWT)
         const { data: resultado, error: errorFuncion } = await _supabase.functions.invoke('crear-usuario', {
