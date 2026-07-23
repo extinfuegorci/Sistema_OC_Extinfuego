@@ -473,25 +473,39 @@ async function guardarEdicionUsuario(authId, nuevoCi, nuevoNombre, nuevoPrivileg
 // ==========================================
 // FUNCIÓN 2: Desbloqueo Manual Rápido
 // ==========================================
-async function desbloquearUsuario(authId) {
-    // Preguntamos para confirmar antes de ejecutar
-    if (!confirm("¿Estás seguro de que deseas desbloquear a este usuario para que vuelva a intentar ingresar?")) {
+// ==========================================
+// FUNCIÓN 2: Desbloqueo Manual Rápido (Corregido)
+// ==========================================
+async function desbloquearUsuario(authId, correo) {
+    // Primero revisamos si realmente está bloqueado localmente
+    const keyBloqueo = `tiempoDesbloqueo_${correo}`;
+    const estaBloqueado = localStorage.getItem(keyBloqueo) && Date.now() < parseInt(localStorage.getItem(keyBloqueo));
+
+    if (!estaBloqueado) {
+        alert("Este usuario no está bloqueado actualmente.");
+        return;
+    }
+
+    if (!confirm(`¿Estás seguro de que deseas desbloquear los intentos de ${correo}?`)) {
         return;
     }
 
     try {
-        // Llamamos a la función SQL que creamos en el paso 1 usando .rpc()
-        const { error } = await _supabase.rpc('desbloquear_usuario_manual', { 
-            uid: authId 
-        });
+        // 1. Limpiamos las variables de castigo del navegador
+        localStorage.removeItem(`intentosFallidos_${correo}`);
+        localStorage.removeItem(`tiempoDesbloqueo_${correo}`);
 
-        if (error) throw error;
+        // 2. Opcional: Intentamos limpiar Supabase en silencio por si acaso (sin lanzar error si falla)
+        _supabase.rpc('desbloquear_usuario_manual', { uid: authId }).catch(() => {});
 
-        alert("¡Usuario desbloqueado con éxito! Ya puede intentar ingresar inmediatamente.");
+        alert("¡Usuario desbloqueado con éxito!");
+        
+        // 3. Recargamos la tabla para que el candado pase de rojo a verde
+        cargarUsuarios(); 
         
     } catch (error) {
         console.error("Error al desbloquear:", error);
-        alert("No se pudo desbloquear al usuario. Revisa la consola.");
+        alert("Ocurrió un problema al limpiar los datos.");
     }
 }
 
@@ -499,7 +513,8 @@ async function desbloquearUsuario(authId) {
 // CARGAR TABLA DE USUARIOS
 // ==========================================
 // ==========================================
-// 6. CARGAR TABLA DE USUARIOS (VERSIÓN UNIFICADA)
+// ==========================================
+// 6. CARGAR TABLA DE USUARIOS (CANDADOS DINÁMICOS)
 // ==========================================
 async function cargarUsuarios() {
     const tbody = document.getElementById('tabla-usuarios-body');
@@ -524,7 +539,35 @@ async function cargarUsuarios() {
 
     const roles = { 1: 'Administrador', 2: 'Operador', 3: 'Encargado', 4: 'Lector' };
 
-    tbody.innerHTML = usuarios.map(u => `
+    // Usamos .map con un bloque {} para poder incluir lógica antes de retornar el HTML
+    tbody.innerHTML = usuarios.map(u => {
+        
+        // 1. Verificamos si ESTE usuario está bloqueado en la memoria actual
+        const keyBloqueo = `tiempoDesbloqueo_${u.usuario}`;
+        const tiempoBloqueo = localStorage.getItem(keyBloqueo);
+        const estaBloqueado = tiempoBloqueo && Date.now() < parseInt(tiempoBloqueo);
+
+        // 2. Definimos el diseño del botón según el estado
+        let btnCandado = '';
+        if (estaBloqueado) {
+            // BLOQUEADO: Fondo Rojo, Candado Cerrado
+            btnCandado = `
+            <button class="btn btn-sm" style="background-color: #dc2626; color: white; margin-left: 5px;" 
+                onclick="desbloquearUsuario('${u.auth_id}', '${u.usuario}')" 
+                title="Usuario Bloqueado - Clic para desbloquear">
+                <i class="ri-lock-2-line"></i>
+            </button>`;
+        } else {
+            // DESBLOQUEADO: Fondo Verde, Candado Abierto
+            btnCandado = `
+            <button class="btn btn-sm" style="background-color: #10b981; color: white; margin-left: 5px;" 
+                onclick="desbloquearUsuario('${u.auth_id}', '${u.usuario}')" 
+                title="Usuario Activo">
+                <i class="ri-lock-unlock-line"></i>
+            </button>`;
+        }
+
+        return `
         <tr>
             <td>${u.ci || '-'}</td>
             <td><strong>${u.nombre_completo || '-'}</strong></td>
@@ -533,29 +576,26 @@ async function cargarUsuarios() {
             <td><span class="badge ${u.activo ? 'badge-success' : 'text-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
             <td>${new Date(u.created_at).toLocaleDateString('es-ES')}</td>
             <td>
-                <!-- Botón Editar (Gris por defecto) -->
+                <!-- Botón Editar -->
                 <button class="btn-icon" 
                     onclick="abrirModalEdicion('${u.auth_id}', '${u.ci}', '${u.nombre_completo}', '${u.privilegio_id}', ${u.activo})" 
                     title="Editar">
                     <i class="ri-edit-line"></i>
                 </button>
 
-                <!-- Botón Llave (Azul) -->
+                <!-- Botón Llave -->
                 <button class="btn btn-sm" style="background-color: #3b82f6; color: white; margin-left: 5px;" 
                     onclick="cambiarPassword('${u.auth_id}')" 
                     title="Restablecer Contraseña">
                     <i class="ri-key-line"></i>
                 </button>
                 
-                <!-- Botón Desbloquear (Naranja) -->
-                <button class="btn btn-sm" style="background-color: #f59e0b; color: white; margin-left: 5px;" 
-                    onclick="desbloquearUsuario('${u.auth_id}')" 
-                    title="Desbloquear intentos fallidos">
-                    <i class="ri-lock-unlock-line"></i>
-                </button>
+                <!-- Botón Candado Dinámico -->
+                ${btnCandado}
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ==========================================
