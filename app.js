@@ -294,6 +294,11 @@ async function guardarNuevoUsuario(event) {
         const privilegio_id = parseInt(document.getElementById('rol-nuevo-usuario').value, 10);
         const activo = document.getElementById('usuario-activo').checked;
 
+        if (password.length < 6) {
+            alert("⚠️ La contraseña es muy corta. Debe tener al menos 6 caracteres.");
+            return; // El 'return' detiene la función aquí mismo y no envía nada a Supabase
+        }
+        
         // 1. Llamamos a la Edge Function usando el método oficial de Supabase (evita el error JWT)
         const { data: resultado, error: errorFuncion } = await _supabase.functions.invoke('crear-usuario', {
             body: { email: correo, password: password }
