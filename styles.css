@@ -186,3 +186,15 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
     transform: scale(1.1); /* Efecto de crecimiento al hacer hover */
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
 }
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro semitransparente */
+    display: none; /* Por defecto oculto, JS lo cambia a 'flex' */
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center; /* Centra verticalmente */
+    z-index: 1000;
+}
