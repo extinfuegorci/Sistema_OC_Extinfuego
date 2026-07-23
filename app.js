@@ -2,7 +2,10 @@ const SUPABASE_URL = 'https://ijoclanarnmlbajefcpx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlqb2NsYW5hcm5tbGJhamVmY3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3Mjg5NzYsImV4cCI6MjEwMDMwNDk3Nn0.KMFLOyp_CDQLEpnMQDxRh3t99BHst8nXseaMxu-SF_g';
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const btnVerPassword = document.getElementById('btn-ver-password');
+const inputPassword = document.getElementById('input-password');
+const MAX_INTENTOS = 5;
+const TIEMPO_BLOQUEO_MINUTOS = 5;
 // ==========================================
 // 2. SISTEMA DE LOGIN Y PRIVILEGIOS (NUEVO)
 // ==========================================
@@ -32,7 +35,18 @@ async function protegerRuta() {
     window.location.replace('index.html'); // Cambia 'index.html' por el nombre de tu panel
   }
 }
-
+btnVerPassword.addEventListener('click', function() {
+  // Verificamos el tipo actual del input
+  const tipoActual = inputPassword.getAttribute('type');
+  
+  if (tipoActual === 'password') {
+    inputPassword.setAttribute('type', 'text');
+    this.textContent = '🙈'; // Cambia el icono cuando se ve la clave
+  } else {
+    inputPassword.setAttribute('type', 'password');
+    this.textContent = '👁️'; // Vuelve al icono original
+  }
+});
 // Ejecutar la protección apenas cargue el script
 protegerRuta();
 
@@ -48,57 +62,48 @@ supabase.auth.onAuthStateChange((event, session) => {
 // A partir de aquí hacia abajo, puedes dejar tu código actual
 // con la función iniciarSesion() y demás...
 // --------------------------------------------------------
-async function iniciarSesion(event) {
-    event.preventDefault();
-    // Nota: El input de tu HTML ahora debe recibir un correo, no un nick.
-    const userEmail = document.getElementById('login-user').value.trim(); 
-    const userPass = document.getElementById('login-pass').value;
-    const errorMsg = document.getElementById('login-error');
-    if(errorMsg) errorMsg.style.display = 'none';
+async function iniciarSesion(correo, password) {
+  // 1. Verificar si el usuario está actualmente bloqueado en este navegador
+  const tiempoDesbloqueo = localStorage.getItem('tiempoDesbloqueo');
+  
+  if (tiempoDesbloqueo && Date.now() < parseInt(tiempoDesbloqueo)) {
+    const minutosRestantes = Math.ceil((parseInt(tiempoDesbloqueo) - Date.now()) / 60000);
+    alert(`Por seguridad, debes esperar ${minutosRestantes} minutos antes de volver a intentarlo.`);
+    return; // Detiene la ejecución, no consulta a Supabase
+  }
 
-    try {
-        // 1. Iniciar sesión nativa con Supabase
-        const { data, error } = await _supabase.auth.signInWithPassword({
-            email: userEmail,
-            password: userPass,
-        });
+  // 2. Intentar el inicio de sesión con Supabase
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: correo,
+    password: password,
+  });
 
-        if (error) throw error;
-
-        // 2. Si el login es exitoso, Supabase genera un token seguro automáticamente.
-        // Ahora buscamos los datos de "Rol" en tu tabla personalizada 'usuarios'
-
-        const idSeguro = data.user.id;
-        const { data: perfiles, error: perfilError } = await _supabase
-            .from('usuarios')
-            .select('*')
-            .eq('usuario', userEmail) // Asegúrate de que en tu tabla 'usuarios' guardes este mismo correo
-            .eq('activo', true);
-
-        if (perfilError) throw perfilError;
-
-        if (perfiles && perfiles.length > 0) {
-            const usuarioAutenticado = perfiles[0];
-            
-            // Guardamos el perfil para la interfaz gráfica
-            localStorage.setItem('sesion_activa', JSON.stringify(usuarioAutenticado));
-            
-            configurarEntornoUsuario(usuarioAutenticado);
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('app-layout').style.display = 'flex';
-            cambiarVista('dashboard');
-        } else {
-            // El usuario existe en Auth pero no en tu tabla, o está inactivo
-            await _supabase.auth.signOut();
-            throw new Error("Usuario inactivo o sin perfil asignado.");
-        }
-    } catch (error) {
-        console.error("Error de autenticación:", error);
-        if(errorMsg) {
-            errorMsg.innerText = "Credenciales incorrectas o acceso denegado.";
-            errorMsg.style.display = 'block';
-        }
+  if (error) {
+    // 3. Lógica en caso de error (credenciales incorrectas)
+    let intentosActuales = parseInt(localStorage.getItem('intentosFallidos') || '0');
+    intentosActuales++;
+    
+    if (intentosActuales >= MAX_INTENTOS) {
+      // Bloquear: calcular la hora futura en milisegundos
+      const milisegundosBloqueo = TIEMPO_BLOQUEO_MINUTOS * 60 * 1000;
+      localStorage.setItem('tiempoDesbloqueo', Date.now() + milisegundosBloqueo);
+      localStorage.setItem('intentosFallidos', '0'); // Reiniciar el contador para el futuro
+      
+      alert(`Has superado los ${MAX_INTENTOS} intentos. Sistema bloqueado temporalmente.`);
+    } else {
+      // Guardar el nuevo número de intentos fallidos
+      localStorage.setItem('intentosFallidos', intentosActuales.toString());
+      alert(`Credenciales incorrectas. Intento ${intentosActuales} de ${MAX_INTENTOS}.`);
     }
+  } else {
+    // 4. Lógica en caso de éxito
+    // Limpiamos cualquier historial de errores previo
+    localStorage.removeItem('intentosFallidos');
+    localStorage.removeItem('tiempoDesbloqueo');
+    
+    alert("Inicio de sesión exitoso. Redirigiendo...");
+    // Aquí va tu código normal de redirección al panel (ej. window.location.href = 'index.html')
+  }
 }
 
 // También debes actualizar la función cerrarSesion:
