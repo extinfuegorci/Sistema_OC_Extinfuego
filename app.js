@@ -16,6 +16,32 @@ async function hashearPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+async function cargarListaPrivilegios() {
+    const selectCrear = document.getElementById('rol-nuevo-usuario'); // Asumiendo que este es el ID para crear
+    const selectEditar = document.getElementById('edit-privilegio');
+
+    const { data: privilegios, error } = await _supabase
+        .from('privilegios')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando privilegios:", error);
+        return;
+    }
+
+    let opcionesHTML = '';
+    privilegios.forEach(priv => {
+        opcionesHTML += `<option value="${priv.id}">${priv.id}. ${priv.nombre}</option>`;
+    });
+
+    if (selectCrear) selectCrear.innerHTML = opcionesHTML;
+    if (selectEditar) selectEditar.innerHTML = opcionesHTML;
+}
+
+// Tendrías que llamar a cargarListaPrivilegios() cuando la página inicie.
+
 // Función para proteger las rutas
 // Función para proteger las rutas (Adaptado para un solo archivo - SPA)
 async function protegerRuta() {
@@ -502,9 +528,12 @@ async function cargarUsuarios() {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando usuarios...</td></tr>';
 
     const { data: usuarios, error } = await _supabase
-        .from('usuarios')
-        .select('*')
-        .order('created_at', { ascending: false });
+    .from('usuarios')
+    .select(`
+        *,
+        privilegios ( nombre )
+    `)
+    .order('created_at', { ascending: false });
 
     if (error) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar la base de datos.</td></tr>';
