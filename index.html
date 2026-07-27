@@ -227,9 +227,40 @@
                 <div class="form-container">
                     <div class="form-header">
                         <h2>Emisión de Orden de Compra</h2>
-                        <div class="oc-num-badge">OC N°: <input type="text" id="oc-num" value="01-DKT"></div>
-                    </div>
+                        <!-- 1. Reemplazar el input actual de OC Nº -->
+                        <div class="form-group">
+                            <label for="oc_numero">OC Nº:</label>
+                            <!-- Lo hacemos readonly para que solo se llene a través del modal -->
+                            <input type="text" id="oc_numero" readonly placeholder="Seleccionar código..." onclick="abrirModalCodigos()" style="cursor: pointer;">
+                            <!-- Campos ocultos para manejar la lógica internamente -->
+                            <input type="hidden" id="tipo_codigo_id">
+                            <input type="hidden" id="codigo_prefijo">
+                            <input type="hidden" id="correlativo_actual">
+                        </div>
 
+<!-- 2. Nuevo Modal para Tipos de Codificación -->
+<div id="modalCodigos" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModalCodigos()">&times;</span>
+        <h3>Tipos de Codificación</h3>
+        
+        <!-- Buscador -->
+        <input type="text" id="buscarCodigo" placeholder="Buscar código..." onkeyup="filtrarCodigos()" style="width: 100%; margin-bottom: 10px;">
+        
+        <!-- Lista de Códigos (Se llena con JS) -->
+        <ul id="listaCodigos" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto;"></ul>
+
+        <hr style="margin: 15px 0;">
+
+        <!-- Formulario para Agregar Nuevo Código -->
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="nuevoCodigoInput" placeholder="Nuevo prefijo (Ej: DKT)" style="text-transform: uppercase; flex: 1;">
+            <button type="button" onclick="agregarCodigo()">+ Agregar</button>
+        </div>
+    </div>
+</div>
+                    </div>
+                    
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Proveedor:</label>
