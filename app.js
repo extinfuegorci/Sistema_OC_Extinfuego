@@ -7,7 +7,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const MAX_INTENTOS = 5;
 const TIEMPO_BLOQUEO_MINUTOS = 5;
-
+// Variable global para saber si estamos buscando CLIENTE o PROVEEDOR
+let tipoBusquedaActual = '';
 // ==========================================
 // 2. INICIALIZACIÓN DE LA APLICACIÓN
 // ==========================================
@@ -449,10 +450,13 @@ async function guardarNuevoCliente(event) {
     if (event) event.preventDefault();
     const nit_ci = document.getElementById('cliente-nit').value;
     const razon_social = document.getElementById('cliente-razon').value;
+    const tipo = document.getElementById('cliente-tipo').value; // NUEVO CAMPO
+    
     if (!razon_social) return alert('Por favor ingrese la Razón Social o Nombre de la Empresa.');
 
+    // Añadimos el tipo al insert
     const { data: clienteData, error: errorCliente } = await _supabase.from('clientes').insert([{ 
-        nit_ci, razon_social, 
+        nit_ci, razon_social, tipo, // <--- SE AGREGA TIPO AQUI
         telefono: document.getElementById('cliente-telefono').value, 
         direccion: document.getElementById('cliente-direccion').value, 
         activo: true
@@ -468,10 +472,100 @@ async function guardarNuevoCliente(event) {
             correo: document.getElementById('cliente-correo')?.value || ''
         }]);
     }
-    alert('Cliente registrado con éxito.');
-    cerrarModal('modal-nuevo-cliente');
+    
+    alert('Registrado con éxito.');
     document.getElementById('form-nuevo-cliente')?.reset();
-    cargarClientes(); 
+    cerrarModal('modal-nuevo-cliente');
+    cargarClientes(); // Recarga la tabla principal por detrás
+    
+    // LA MAGIA DE UX: Si veníamos de buscar para una Orden, volvemos a abrir ese modal
+    if (document.getElementById('vista-nueva-orden').classList.contains('active') && tipoBusquedaActual) {
+        abrirModalBusqueda(tipoBusquedaActual);
+    }
+}
+
+// ==========================================
+// NUEVO FLUJO DE BÚSQUEDA DINÁMICA
+// ==========================================
+
+async function abrirModalBusqueda(tipo) {
+    tipoBusquedaActual = tipo; // 'CLIENTE' o 'PROVEEDOR'
+    
+    // Actualizar interfaz del modal
+    document.getElementById('titulo-modal-busqueda').innerHTML = `🔍 Seleccionar ${tipo === 'CLIENTE' ? 'Cliente' : 'Proveedor'}`;
+    document.getElementById('input-filtro-busqueda').value = '';
+    
+    const tbody = document.getElementById('tabla-busqueda-body');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center">Cargando...</td></tr>';
+    
+    abrirModal('modal-busqueda');
+
+    // Traer datos de Supabase filtrados por tipo y que estén activos
+    const { data, error } = await _supabase
+        .from('clientes')
+        .select('*, contactos_cliente(nombre_completo)')
+        .eq('tipo', tipo)
+        .eq('activo', true)
+        .order('razon_social', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center">No hay registros de tipo ${tipo}.</td></tr>`;
+        return;
+    }
+
+    // Dibujar la tabla
+    tbody.innerHTML = data.map(item => {
+        const contacto = item.contactos_cliente && item.contactos_cliente.length > 0 ? item.contactos_cliente[0].nombre_completo : '';
+        // Pasamos los datos limpiando comillas para evitar errores de sintaxis
+        const razonLimpia = item.razon_social.replace(/'/g, "\\'");
+        const contactoLimpio = contacto.replace(/'/g, "\\'");
+        
+        return `
+        <tr class="fila-busqueda">
+            <td class="busqueda-razon"><strong>${item.razon_social}</strong></td>
+            <td class="busqueda-nit">${item.nit_ci || 'S/N'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="seleccionarEntidad('${razonLimpia}', '${item.nit_ci || ''}', '${contactoLimpio}')">
+                    Seleccionar
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// Función que se ejecuta al darle al botón rojo "Seleccionar" en la tabla
+function seleccionarEntidad(nombre, nit, contacto) {
+    if (tipoBusquedaActual === 'PROVEEDOR') {
+        document.getElementById('proveedor-nombre').value = nombre;
+        document.getElementById('contacto-nombre').value = contacto;
+    } else if (tipoBusquedaActual === 'CLIENTE') {
+        document.getElementById('facturar-a').value = nombre;
+        document.getElementById('nit-factura').value = nit;
+    }
+    cerrarModal('modal-busqueda');
+}
+
+// Pequeño filtro en memoria para la barra de búsqueda del modal
+function filtrarTablaBusqueda() {
+    const texto = document.getElementById('input-filtro-busqueda').value.toLowerCase();
+    const filas = document.querySelectorAll('.fila-busqueda');
+    
+    filas.forEach(fila => {
+        const razon = fila.querySelector('.busqueda-razon').innerText.toLowerCase();
+        const nit = fila.querySelector('.busqueda-nit').innerText.toLowerCase();
+        if (razon.includes(texto) || nit.includes(texto)) {
+            fila.style.display = '';
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+}
+
+// Si no lo encuentra, redirige al modal de creación
+function redirigirCreacionEntidad() {
+    cerrarModal('modal-busqueda');
+    document.getElementById('cliente-tipo').value = tipoBusquedaActual; // Preselecciona el combo
+    abrirModal('modal-nuevo-cliente');
 }
 
 async function guardarOrdenCompra() {
@@ -614,6 +708,7 @@ async function procesarEdicionCliente(event) {
         const clienteId = document.getElementById('edit-cliente-id').value;
         const nit = document.getElementById('edit-cliente-nit').value;
         const razon = document.getElementById('edit-cliente-razon').value;
+        const tipo = document.getElementById('edit-cliente-tipo').value;
         const telefono = document.getElementById('edit-cliente-telefono').value;
         const direccion = document.getElementById('edit-cliente-direccion').value;
         const activo = document.getElementById('edit-cliente-estado').value === 'true';
@@ -627,6 +722,7 @@ async function procesarEdicionCliente(event) {
             .update({
                 nit_ci: nit,
                 razon_social: razon,
+                tipo: tipo,
                 telefono: telefono,
                 direccion: direccion,
                 activo: activo
