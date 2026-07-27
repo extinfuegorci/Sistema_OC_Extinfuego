@@ -614,6 +614,52 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL 5: EDITAR CLIENTE -->
+    <div id="modal-editar-cliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏢 Editar Cliente / Empresa</h3>
+                <span class="close-modal" onclick="cerrarModal('modal-editar-cliente')">&times;</span>
+            </div>
+            <form id="form-editar-cliente" class="modal-body" onsubmit="procesarEdicionCliente(event)">
+                <!-- Campos ocultos para los IDs de Supabase -->
+                <input type="hidden" id="edit-cliente-id">
+                <input type="hidden" id="edit-contacto-id">
+                
+                <div class="form-group mb-10">
+                    <label>NIT / CI:</label>
+                    <input type="text" id="edit-cliente-nit">
+                </div>
+                <div class="form-group mb-10">
+                    <label>Razón Social / Nombre Empresa:</label>
+                    <input type="text" id="edit-cliente-razon" required>
+                </div>
+                <div class="form-group mb-10">
+                    <label>Nombre de Encargado / Contacto:</label>
+                    <input type="text" id="edit-cliente-contacto">
+                </div>
+                <div class="form-group mb-10">
+                    <label>Teléfono / Celular:</label>
+                    <input type="text" id="edit-cliente-telefono">
+                </div>
+                <div class="form-group mb-15">
+                    <label>Dirección:</label>
+                    <input type="text" id="edit-cliente-direccion">
+                </div>
+                <div class="form-group mb-15">
+                    <label>Estado de la Empresa:</label>
+                    <select id="edit-cliente-estado" class="form-control">
+                        <option value="true">Activo (Operando)</option>
+                        <option value="false">Inactivo (No mostrar más)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="ri-save-line"></i> Guardar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
     
 <script src="app.js"></script>
 </body>
