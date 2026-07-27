@@ -126,7 +126,7 @@
                     <i class="ri-file-add-line"></i> Nueva Orden
                 </button>
                 <button class="nav-btn" onclick="cambiarVista('clientes', this)">
-                    <i class="ri-building-line"></i> Clientes / Empresas
+                    <i class="ri-building-line"></i> Clientes / Proveedores
                 </button>
                 <button class="nav-btn" onclick="cambiarVista('usuarios', this)">
                     <i class="ri-user-settings-line"></i> Usuarios & Permisos
@@ -234,8 +234,8 @@
                         <div class="form-group">
                             <label>Proveedor:</label>
                             <div class="input-with-btn">
-                                <input type="text" id="proveedor-nombre" placeholder="Nombre o Razón Social">
-                                <button class="btn-icon" onclick="abrirModal('modal-clientes')" title="Buscar de la lista"><i class="ri-search-line"></i></button>
+                                <input type="text" id="proveedor-nombre" placeholder="Nombre o Razón Social" readonly>
+                                <button class="btn-icon" onclick="abrirModalBusqueda('PROVEEDOR')" title="Buscar Proveedor"><i class="ri-search-line"></i></button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -252,8 +252,11 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Facturar a:</label>
-                            <input type="text" id="facturar-a" placeholder="Razón Social Factura">
+                            <label>Facturar a (Cliente):</label>
+                            <div class="input-with-btn">
+                                <input type="text" id="facturar-a" placeholder="Razón Social Factura" readonly>
+                                <button class="btn-icon" onclick="abrirModalBusqueda('CLIENTE')" title="Buscar Cliente"><i class="ri-search-line"></i></button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>NIT:</label>
@@ -425,15 +428,18 @@
     <!-- ==================== MODALES ==================== -->
 
     <!-- MODAL 1: SELECCIONAR CLIENTE -->
-    <div id="modal-clientes" class="modal">
+    <div id="modal-busqueda" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🔍 Seleccionar Cliente / Proveedor</h3>
-                <span class="close-modal" onclick="cerrarModal('modal-clientes')">&times;</span>
+                <h3 id="titulo-modal-busqueda">🔍 Seleccionar</h3>
+                <span class="close-modal" onclick="cerrarModal('modal-busqueda')">&times;</span>
             </div>
             <div class="modal-body">
-                <input type="text" placeholder="Buscar por Nombre, NIT o Teléfono..." class="input-search mb-10">
-                <div class="table-container" style="max-height: 250px;">
+                <div class="topbar-actions mb-10">
+                    <input type="text" id="input-filtro-busqueda" placeholder="Buscar por Nombre o NIT..." class="input-search" style="width: 70%;" onkeyup="filtrarTablaBusqueda()">
+                    <button class="btn btn-primary" onclick="redirigirCreacionEntidad()" style="width: 28%;"><i class="ri-add-line"></i> Agregar</button>
+                </div>
+                <div class="table-container" style="max-height: 250px; overflow-y: auto;">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -442,17 +448,8 @@
                                 <th>Acción</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>FERROTODO S.A.</td>
-                                <td>102938475</td>
-                                <td><button class="btn btn-sm btn-primary">Seleccionar</button></td>
-                            </tr>
-                            <tr>
-                                <td>KENNETH WILLS</td>
-                                <td>4622155011</td>
-                                <td><button class="btn btn-sm btn-primary">Seleccionar</button></td>
-                            </tr>
+                        <tbody id="tabla-busqueda-body">
+                            <!-- Se llena desde JS -->
                         </tbody>
                     </table>
                 </div>
@@ -468,9 +465,14 @@
                 <span class="close-modal" onclick="cerrarModal('modal-nuevo-cliente')">&times;</span>
             </div>
             <form id="form-nuevo-cliente" class="modal-body" onsubmit="guardarNuevoCliente(event)">
-                <div class="form-group mb-10">
-                    <label>NIT / CI:</label>
-                    <input type="text" id="cliente-nit" placeholder="Ej: 102938475">
+    
+            <!-- NUEVO CAMPO: TIPO DE ENTIDAD -->
+                <div class="form-group mb-10" id="contenedor-tipo-cliente">
+                    <label>Tipo de Entidad:</label>
+                    <select id="cliente-tipo" class="form-control">
+                        <option value="CLIENTE">Cliente (Facturación)</option>
+                        <option value="PROVEEDOR">Proveedor (Compras)</option>
+                </select>
                 </div>
                 <div class="form-group mb-10">
                     <label>Razón Social / Nombre Empresa:</label>
@@ -628,6 +630,15 @@
                 <!-- Campos ocultos para los IDs de Supabase -->
                 <input type="hidden" id="edit-cliente-id">
                 <input type="hidden" id="edit-contacto-id">
+
+                <!-- NUEVO CAMPO: TIPO DE ENTIDAD (PARA EDICIÓN) -->
+                <div class="form-group mb-10">
+                    <label>Tipo de Entidad:</label>
+                    <select id="edit-cliente-tipo" class="form-control">
+                        <option value="CLIENTE">Cliente (Facturación)</option>
+                        <option value="PROVEEDOR">Proveedor (Compras)</option>
+                    </select>
+                </div>
                 
                 <div class="form-group mb-10">
                     <label>NIT / CI:</label>
