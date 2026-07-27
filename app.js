@@ -635,7 +635,7 @@ async function guardarOrdenCompra() {
             monto_total: total,
             observacion: observacion,
             estado: 'PENDIENTE', // Estado por defecto
-            //creado_por: userData.user.id // ID del usuario actual
+            //creado_por: userData.user.id // ID del usuario actual (Comentado temporalmente)
         };
 
         // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado (con su ID)
@@ -657,7 +657,6 @@ async function guardarOrdenCompra() {
             const unidad = tr.querySelector('.item-unidad').value;
             const desc = tr.querySelector('.item-desc').value;
             const precio = parseFloat(tr.querySelector('.item-precio').value) || 0;
-            const subtotalFila = parseFloat(tr.querySelector('.item-subtotal-txt').innerText) || 0;
 
             // Filtramos: Solo guardamos filas que tengan descripción y cantidad válida
             if (desc.trim() !== '' && cant > 0) {
@@ -667,8 +666,8 @@ async function guardarOrdenCompra() {
                     cantidad: cant,
                     unidad: unidad,
                     descripcion: desc,
-                    precio_unitario: precio,
-                    subtotal: subtotalFila
+                    precio_unitario: precio
+                    // 👇 LÍNEA ELIMINADA: Ya no enviamos el subtotal porque Supabase lo calcula solo
                 });
             }
         });
