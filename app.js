@@ -635,7 +635,7 @@ async function guardarOrdenCompra() {
             monto_total: total,
             observacion: observacion,
             estado: 'PENDIENTE', // Estado por defecto
-            creado_por: userData.user.id // ID del usuario actual
+            //creado_por: userData.user.id // ID del usuario actual
         };
 
         // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado (con su ID)
