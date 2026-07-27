@@ -448,39 +448,62 @@ async function cargarClientes() {
 
 async function guardarNuevoCliente(event) {
     if (event) event.preventDefault();
-    const nit_ci = document.getElementById('cliente-nit').value;
-    const razon_social = document.getElementById('cliente-razon').value;
-    const tipo = document.getElementById('cliente-tipo').value; // NUEVO CAMPO
     
-    if (!razon_social) return alert('Por favor ingrese la Razón Social o Nombre de la Empresa.');
-
-    // Añadimos el tipo al insert
-    const { data: clienteData, error: errorCliente } = await _supabase.from('clientes').insert([{ 
-        nit_ci, razon_social, tipo, // <--- SE AGREGA TIPO AQUI
-        telefono: document.getElementById('cliente-telefono').value, 
-        direccion: document.getElementById('cliente-direccion').value, 
-        activo: true
-    }]).select(); 
-
-    if (errorCliente) return alert('Error al registrar la empresa: ' + errorCliente.message);
-
-    const nombre_completo = document.getElementById('cliente-contacto').value;
-    if (clienteData?.length > 0 && nombre_completo) {
-        await _supabase.from('contactos_cliente').insert([{ 
-            cliente_id: clienteData[0].id, nombre_completo,
-            telefono: document.getElementById('cliente-telefono').value,
-            correo: document.getElementById('cliente-correo')?.value || ''
-        }]);
-    }
+    // Usamos ?.value || '' para evitar que colapse si el campo no existe en el HTML
+    const nit_ci = document.getElementById('cliente-nit')?.value || 'S/N';
+    const razon_social = document.getElementById('cliente-razon')?.value || '';
+    const tipo = document.getElementById('cliente-tipo')?.value || 'CLIENTE'; 
+    const telefono_empresa = document.getElementById('cliente-telefono')?.value || '';
+    const direccion_empresa = document.getElementById('cliente-direccion')?.value || '';
     
-    alert('Registrado con éxito.');
-    document.getElementById('form-nuevo-cliente')?.reset();
-    cerrarModal('modal-nuevo-cliente');
-    cargarClientes(); // Recarga la tabla principal por detrás
-    
-    // LA MAGIA DE UX: Si veníamos de buscar para una Orden, volvemos a abrir ese modal
-    if (document.getElementById('vista-nueva-orden').classList.contains('active') && tipoBusquedaActual) {
-        abrirModalBusqueda(tipoBusquedaActual);
+    if (!razon_social) return alert('⚠️ Por favor ingrese la Razón Social o Nombre de la Empresa.');
+
+    try {
+        // Inserción del Cliente/Proveedor
+        const { data: clienteData, error: errorCliente } = await _supabase
+            .from('clientes')
+            .insert([{ 
+                nit_ci: nit_ci, 
+                razon_social: razon_social, 
+                tipo: tipo,
+                telefono: telefono_empresa, 
+                direccion: direccion_empresa, 
+                activo: true
+            }])
+            .select(); 
+
+        if (errorCliente) throw errorCliente;
+
+        // Inserción del Contacto (si se llenó el campo)
+        const nombre_completo = document.getElementById('cliente-contacto')?.value || '';
+        if (clienteData?.length > 0 && nombre_completo.trim() !== '') {
+            const correo_contacto = document.getElementById('cliente-correo')?.value || '';
+            
+            await _supabase.from('contactos_cliente').insert([{ 
+                cliente_id: clienteData[0].id, 
+                nombre_completo: nombre_completo,
+                telefono: telefono_empresa,
+                correo: correo_contacto
+            }]);
+        }
+        
+        alert('✅ Registrado con éxito.');
+        document.getElementById('form-nuevo-cliente')?.reset();
+        cerrarModal('modal-nuevo-cliente');
+        
+        // Refrescar la tabla si existe la función
+        if (typeof cargarClientes === 'function') {
+            cargarClientes(); 
+        }
+        
+        // Si estábamos en medio de una Orden de Compra, volver al buscador
+        if (document.getElementById('vista-nueva-orden')?.classList.contains('active') && tipoBusquedaActual) {
+            abrirModalBusqueda(tipoBusquedaActual);
+        }
+
+    } catch (error) {
+        console.error('Error guardando:', error);
+        alert('❌ Error al registrar la empresa: ' + error.message);
     }
 }
 
