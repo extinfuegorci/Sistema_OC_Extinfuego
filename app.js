@@ -711,14 +711,22 @@ async function guardarOrdenCompra() {
 // MÓDULO: TIPOS DE CODIFICACIÓN (OC Nº)
 // ==========================================
 
-// ABRIR MODAL (Actualizado para centrado flex)
+// ==========================================
+// MÓDULO: TIPOS DE CODIFICACIÓN (OC Nº)
+// ==========================================
+
+// 1. ABRIR MODAL
 function abrirModalCodigos() {
-    // Usamos 'flex' para que el centrado funcione correctamente
     document.getElementById('modalCodigos').style.display = 'flex';
     cargarCodigos();
 }
 
-// READ: Obtener los códigos (Actualizado formato y botón basurero)
+// 2. CERRAR MODAL
+function cerrarModalCodigos() {
+    document.getElementById('modalCodigos').style.display = 'none';
+}
+
+// 3. READ: Obtener los códigos desde Supabase
 async function cargarCodigos() {
     const lista = document.getElementById('listaCodigos');
     lista.innerHTML = '<li style="padding: 10px;">Cargando...</li>';
@@ -736,7 +744,6 @@ async function cargarCodigos() {
 
     lista.innerHTML = '';
     data.forEach(item => {
-        // Formato visual ajustado y botón de basurero tipo gris
         lista.innerHTML += `
             <li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center;">
                 <span style="cursor: pointer; flex: 1; color: #333;" onclick="seleccionarCodigo('${item.id}', '${item.codigo}', ${item.correlativo})">
@@ -750,9 +757,36 @@ async function cargarCodigos() {
     });
 }
 
-// DELETE: Eliminar un código (Actualizado con mensaje personalizado)
+// 4. CREATE: Agregar un nuevo tipo de código
+async function agregarCodigo() {
+    const input = document.getElementById('nuevoCodigoInput');
+    const codigoValue = input.value.trim().toUpperCase();
+
+    if (!codigoValue) {
+        alert("Por favor, ingresa un código válido.");
+        return;
+    }
+
+    const { data, error } = await _supabase
+        .from('tipos_codificacion')
+        .insert([{ codigo: codigoValue, correlativo: 0 }]);
+
+    if (error) {
+        if (error.code === '23505') { 
+            alert("Este código ya existe.");
+        } else {
+            console.error("Error agregando código:", error);
+            alert("Error al guardar el código.");
+        }
+        return;
+    }
+
+    input.value = ''; // Limpiar input después de guardar
+    cargarCodigos(); // Recargar la lista visual
+}
+
+// 5. DELETE: Eliminar un código
 async function eliminarCodigo(id, codigoNombre) {
-    // Aquí implementamos tu mensaje exacto
     if (!confirm(`¿Estás seguro de eliminar la codificación ${codigoNombre}?`)) {
         return;
     }
@@ -771,40 +805,22 @@ async function eliminarCodigo(id, codigoNombre) {
     cargarCodigos();
 }
 
-// DELETE: Eliminar un código
-async function eliminarCodigo(id) {
-    if (!confirm("¿Estás seguro de eliminar este código?")) return;
-
-    const { error } = await _supabase
-        .from('tipos_codificacion')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error("Error eliminando:", error);
-        alert("Error al eliminar.");
-        return;
-    }
-    
-    cargarCodigos();
-}
-
-// SELECCIONAR: Poner el código formateado en el input principal
+// 6. SELECCIONAR: Poner el código formateado en el input principal
 function seleccionarCodigo(id, codigo, correlativo) {
     const siguienteNumero = correlativo + 1;
     
-    // Guardar datos en los inputs ocultos para usarlos al momento de guardar la orden
+    // Guardar datos ocultos
     document.getElementById('tipo_codigo_id').value = id;
     document.getElementById('codigo_prefijo').value = codigo;
     document.getElementById('correlativo_actual').value = correlativo;
     
-    // Mostrar visualmente en formato: [Número]-[CÓDIGO]
+    // Formato visual: [Número]-[CÓDIGO]
     document.getElementById('oc_numero').value = `${siguienteNumero}-${codigo}`;
     
     cerrarModalCodigos();
 }
 
-// FILTRAR: Buscador en tiempo real dentro del modal
+// 7. FILTRAR: Buscador en tiempo real dentro del modal
 function filtrarCodigos() {
     const filtro = document.getElementById('buscarCodigo').value.toUpperCase();
     const items = document.getElementById('listaCodigos').getElementsByTagName('li');
@@ -817,7 +833,6 @@ function filtrarCodigos() {
         }
     }
 }
-
 function abrirModalEdicionCliente(id, nit, razon, contactoId, contactoNombre, telefono, direccion, activo) {
     // 1. Llenamos el formulario con los datos actuales
     document.getElementById('edit-cliente-id').value = id;
