@@ -474,6 +474,123 @@ async function guardarNuevoCliente(event) {
     cargarClientes(); 
 }
 
+async function guardarOrdenCompra() {
+    try {
+        // 1. Recolectar datos principales de la cabecera
+        const numeroOc = document.getElementById('oc-num').value;
+        const proveedor = document.getElementById('proveedor-nombre').value;
+        const contacto = document.getElementById('contacto-nombre').value;
+        const fechaSolicitud = document.getElementById('fecha-solicitud').value;
+        const fechaEntrega = document.getElementById('fecha-entrega').value;
+        const facturarA = document.getElementById('facturar-a').value;
+        const nitFactura = document.getElementById('nit-factura').value;
+        const empresaSolicitante = document.getElementById('empresa-solicitante').value;
+        const formaPago = document.getElementById('forma-pago').value;
+        const observacion = document.getElementById('observacion').value;
+        
+        // Totales calculados de la UI
+        const subtotal = parseFloat(document.getElementById('lbl-subtotal').innerText) || 0;
+        const descuento = parseFloat(document.getElementById('descuento-pct').value) || 0;
+        const total = parseFloat(document.getElementById('lbl-total').innerText) || 0;
+
+        // 2. Validaciones obligatorias
+        if (!proveedor) return alert('⚠️ Por favor, ingresa el nombre del proveedor.');
+        if (!fechaSolicitud) return alert('⚠️ Por favor, selecciona la fecha de solicitud.');
+        if (total <= 0) return alert('⚠️ El total de la orden debe ser mayor a 0. Asegúrate de agregar ítems válidos.');
+
+        // 3. Obtener quién está creando la orden (Seguridad)
+        const { data: userData, error: userError } = await _supabase.auth.getUser();
+        if (userError || !userData.user) throw new Error('No se pudo verificar tu sesión. Inicia sesión nuevamente.');
+        
+        // 4. Inserción en la tabla principal (ordenes)
+        const nuevaOrden = {
+            numero_oc: numeroOc,
+            proveedor_nombre: proveedor,
+            contacto_nombre: contacto,
+            fecha_solicitud: fechaSolicitud,
+            fecha_entrega: fechaEntrega || null, // Si está vacío mandamos null
+            facturar_a: facturarA,
+            nit_factura: nitFactura,
+            empresa_solicitante: empresaSolicitante,
+            forma_pago: formaPago,
+            subtotal: subtotal,
+            descuento_porcentaje: descuento,
+            monto_total: total,
+            observacion: observacion,
+            estado: 'PENDIENTE', // Estado por defecto
+            creado_por: userData.user.id // ID del usuario actual
+        };
+
+        // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado (con su ID)
+        const { data: ordenInsertada, error: errorOrden } = await _supabase
+            .from('ordenes')
+            .insert([nuevaOrden])
+            .select(); 
+
+        if (errorOrden) throw new Error('Error al guardar la orden (Cabecera): ' + errorOrden.message);
+        
+        const idOrdenGenerada = ordenInsertada[0].id; // ¡Capturamos el ID mágico!
+
+        // 5. Inserción de los Ítems (Detalle)
+        const filas = document.querySelectorAll('#items-body tr');
+        const itemsAInsertar = [];
+
+        filas.forEach((tr, index) => {
+            const cant = parseFloat(tr.querySelector('.item-cant').value) || 0;
+            const unidad = tr.querySelector('.item-unidad').value;
+            const desc = tr.querySelector('.item-desc').value;
+            const precio = parseFloat(tr.querySelector('.item-precio').value) || 0;
+            const subtotalFila = parseFloat(tr.querySelector('.item-subtotal-txt').innerText) || 0;
+
+            // Filtramos: Solo guardamos filas que tengan descripción y cantidad válida
+            if (desc.trim() !== '' && cant > 0) {
+                itemsAInsertar.push({
+                    orden_id: idOrdenGenerada, // Enlazamos con la cabecera
+                    numero_item: index + 1,
+                    cantidad: cant,
+                    unidad: unidad,
+                    descripcion: desc,
+                    precio_unitario: precio,
+                    subtotal: subtotalFila
+                });
+            }
+        });
+
+        if (itemsAInsertar.length > 0) {
+            const { error: errorItems } = await _supabase.from('items_orden').insert(itemsAInsertar);
+            if (errorItems) throw new Error('La orden se creó, pero hubo un fallo guardando los ítems: ' + errorItems.message);
+        } else {
+            alert('⚠️ La orden se guardó sin ningún producto en el detalle.');
+        }
+
+        // 6. ¡Éxito y limpieza del formulario!
+        alert('✅ ¡Orden de Compra registrada con éxito!');
+        
+        // Limpiamos cajas de texto
+        document.getElementById('proveedor-nombre').value = '';
+        document.getElementById('contacto-nombre').value = '';
+        document.getElementById('facturar-a').value = '';
+        document.getElementById('nit-factura').value = '';
+        document.getElementById('observacion').value = '';
+        document.getElementById('descuento-pct').value = '0';
+        document.getElementById('fecha-solicitud').value = '';
+        document.getElementById('fecha-entrega').value = '';
+        
+        // Reiniciamos la tabla de ítems a 3 filas vacías (aprovechando tu función existente)
+        document.getElementById('items-body').innerHTML = '';
+        for (let i = 0; i < 3; i++) agregarFilaItem();
+        calcularTotales(); // Dejamos en 0.00 todo
+
+        // Pequeño truco: Autoincrementar visualmente el número de OC para la siguiente (Ej: 01-DKT -> 02-DKT)
+        const numeroActual = parseInt(numeroOc.split('-')[0]) || 0;
+        document.getElementById('oc-num').value = String(numeroActual + 1).padStart(2, '0') + '-DKT';
+
+    } catch (error) {
+        console.error(error);
+        alert('❌ Ocurrió un error: ' + error.message);
+    }
+}
+
 function abrirModalEdicionCliente(id, nit, razon, contactoId, contactoNombre, telefono, direccion, activo) {
     // 1. Llenamos el formulario con los datos actuales
     document.getElementById('edit-cliente-id').value = id;
