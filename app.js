@@ -707,6 +707,124 @@ async function guardarOrdenCompra() {
     }
 }
 
+// ==========================================
+// MÓDULO: TIPOS DE CODIFICACIÓN (OC Nº)
+// ==========================================
+
+function abrirModalCodigos() {
+    document.getElementById('modalCodigos').style.display = 'block';
+    cargarCodigos();
+}
+
+function cerrarModalCodigos() {
+    document.getElementById('modalCodigos').style.display = 'none';
+}
+
+// READ: Obtener los códigos desde Supabase
+async function cargarCodigos() {
+    const lista = document.getElementById('listaCodigos');
+    lista.innerHTML = '<li>Cargando...</li>';
+
+    const { data, error } = await _supabase
+        .from('tipos_codificacion')
+        .select('*')
+        .order('codigo', { ascending: true });
+
+    if (error) {
+        console.error("Error cargando códigos:", error);
+        lista.innerHTML = '<li>Error al cargar</li>';
+        return;
+    }
+
+    lista.innerHTML = '';
+    data.forEach(item => {
+        // Al hacer clic en un item, se selecciona. También agregamos botón de eliminar.
+        lista.innerHTML += `
+            <li style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; align-items: center;">
+                <span style="cursor: pointer; flex: 1;" onclick="seleccionarCodigo('${item.id}', '${item.codigo}', ${item.correlativo})">
+                    ${item.codigo} (Siguiente: ${item.correlativo + 1})
+                </span>
+                <button type="button" onclick="eliminarCodigo('${item.id}')" style="background: #ff4444; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 5px;">🗑️</button>
+            </li>
+        `;
+    });
+}
+
+// CREATE: Agregar un nuevo tipo de código
+async function agregarCodigo() {
+    const input = document.getElementById('nuevoCodigoInput');
+    const codigoValue = input.value.trim().toUpperCase();
+
+    if (!codigoValue) {
+        alert("Por favor, ingresa un código válido.");
+        return;
+    }
+
+    const { data, error } = await _supabase
+        .from('tipos_codificacion')
+        .insert([{ codigo: codigoValue, correlativo: 0 }]);
+
+    if (error) {
+        if (error.code === '23505') { // Código de error para unique_violation en PostgreSQL
+            alert("Este código ya existe.");
+        } else {
+            console.error("Error agregando código:", error);
+            alert("Error al guardar el código.");
+        }
+        return;
+    }
+
+    input.value = ''; // Limpiar input
+    cargarCodigos(); // Recargar lista
+}
+
+// DELETE: Eliminar un código
+async function eliminarCodigo(id) {
+    if (!confirm("¿Estás seguro de eliminar este código?")) return;
+
+    const { error } = await _supabase
+        .from('tipos_codificacion')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error("Error eliminando:", error);
+        alert("Error al eliminar.");
+        return;
+    }
+    
+    cargarCodigos();
+}
+
+// SELECCIONAR: Poner el código formateado en el input principal
+function seleccionarCodigo(id, codigo, correlativo) {
+    const siguienteNumero = correlativo + 1;
+    
+    // Guardar datos en los inputs ocultos para usarlos al momento de guardar la orden
+    document.getElementById('tipo_codigo_id').value = id;
+    document.getElementById('codigo_prefijo').value = codigo;
+    document.getElementById('correlativo_actual').value = correlativo;
+    
+    // Mostrar visualmente en formato: [Número]-[CÓDIGO]
+    document.getElementById('oc_numero').value = `${siguienteNumero}-${codigo}`;
+    
+    cerrarModalCodigos();
+}
+
+// FILTRAR: Buscador en tiempo real dentro del modal
+function filtrarCodigos() {
+    const filtro = document.getElementById('buscarCodigo').value.toUpperCase();
+    const items = document.getElementById('listaCodigos').getElementsByTagName('li');
+    
+    for (let i = 0; i < items.length; i++) {
+        const span = items[i].getElementsByTagName("span")[0];
+        if (span) {
+            const texto = span.textContent || span.innerText;
+            items[i].style.display = texto.toUpperCase().indexOf(filtro) > -1 ? "" : "none";
+        }
+    }
+}
+
 function abrirModalEdicionCliente(id, nit, razon, contactoId, contactoNombre, telefono, direccion, activo) {
     // 1. Llenamos el formulario con los datos actuales
     document.getElementById('edit-cliente-id').value = id;
