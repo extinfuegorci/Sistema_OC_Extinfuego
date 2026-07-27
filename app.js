@@ -410,24 +410,39 @@ async function cargarClientes() {
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" class="text-center">Cargando datos...</td></tr>';
 
-    const { data: clientes, error } = await _supabase.from('clientes').select('*, contactos_cliente(nombre_completo)').order('created_at', { ascending: false });
+    // Se agrega "id" en el select de contactos_cliente para poder identificarlo al editar
+    const { data: clientes, error } = await _supabase
+        .from('clientes')
+        .select('*, contactos_cliente(id, nombre_completo)')
+        .order('created_at', { ascending: false });
     
     if (error || !clientes || clientes.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center ${error ? 'text-danger' : ''}">${error ? 'Error al cargar.' : 'No hay clientes registrados.'}</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = clientes.map(c => `
+    tbody.innerHTML = clientes.map(c => {
+        // Validación de seguridad por si una empresa no tiene contacto registrado
+        const contacto = c.contactos_cliente && c.contactos_cliente.length > 0 ? c.contactos_cliente[0] : null;
+        const contactoId = contacto ? contacto.id : '';
+        // Escapamos comillas simples para evitar que se rompa el HTML si una empresa se llama "McDonald's"
+        const contactoNombre = contacto ? contacto.nombre_completo.replace(/'/g, "\\'") : '';
+        const razonSocialEscapada = (c.razon_social || '').replace(/'/g, "\\'");
+
+        return `
         <tr>
             <td>${c.nit_ci || 'S/N'}</td>
             <td><strong>${c.razon_social}</strong></td>
-            <td>${c.contactos_cliente?.[0]?.nombre_completo || '-'}</td>
+            <td>${contacto ? contacto.nombre_completo : '-'}</td>
             <td>${c.telefono || '-'}</td>
             <td>${c.direccion || '-'}</td>
             <td><span class="badge ${c.activo ? 'badge-success' : 'text-danger'}">${c.activo ? 'Activo' : 'Inactivo'}</span></td>
-            <td><button class="btn-icon" title="Editar"><i class="ri-edit-line"></i></button></td>
-        </tr>
-    `).join('');
+            <td>
+                <!-- El botón ahora dispara la función pasando todos los datos de la fila -->
+                <button class="btn-icon" onclick="abrirModalEdicionCliente('${c.id}', '${c.nit_ci || ''}', '${razonSocialEscapada}', '${contactoId}', '${contactoNombre}', '${c.telefono || ''}', '${c.direccion || ''}', ${c.activo})" title="Editar"><i class="ri-edit-line"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
 }
 
 async function guardarNuevoCliente(event) {
@@ -457,6 +472,79 @@ async function guardarNuevoCliente(event) {
     cerrarModal('modal-nuevo-cliente');
     document.getElementById('form-nuevo-cliente')?.reset();
     cargarClientes(); 
+}
+
+function abrirModalEdicionCliente(id, nit, razon, contactoId, contactoNombre, telefono, direccion, activo) {
+    // 1. Llenamos el formulario con los datos actuales
+    document.getElementById('edit-cliente-id').value = id;
+    document.getElementById('edit-cliente-nit').value = nit;
+    document.getElementById('edit-cliente-razon').value = razon;
+    document.getElementById('edit-contacto-id').value = contactoId;
+    document.getElementById('edit-cliente-contacto').value = contactoNombre;
+    document.getElementById('edit-cliente-telefono').value = telefono;
+    document.getElementById('edit-cliente-direccion').value = direccion;
+    document.getElementById('edit-cliente-estado').value = activo ? 'true' : 'false';
+    
+    // 2. Mostramos el modal
+    abrirModal('modal-editar-cliente');
+}
+
+async function procesarEdicionCliente(event) {
+    event.preventDefault(); // Evitamos que recargue la página
+    
+    try {
+        // Recolectamos los datos modificados por el usuario
+        const clienteId = document.getElementById('edit-cliente-id').value;
+        const nit = document.getElementById('edit-cliente-nit').value;
+        const razon = document.getElementById('edit-cliente-razon').value;
+        const telefono = document.getElementById('edit-cliente-telefono').value;
+        const direccion = document.getElementById('edit-cliente-direccion').value;
+        const activo = document.getElementById('edit-cliente-estado').value === 'true';
+        
+        const contactoId = document.getElementById('edit-contacto-id').value;
+        const contactoNombre = document.getElementById('edit-cliente-contacto').value;
+
+        // 1. Actualizamos los datos principales en la tabla 'clientes'
+        const { error: errCliente } = await _supabase
+            .from('clientes')
+            .update({
+                nit_ci: nit,
+                razon_social: razon,
+                telefono: telefono,
+                direccion: direccion,
+                activo: activo
+            })
+            .eq('id', clienteId);
+
+        if (errCliente) throw new Error('Error al actualizar la empresa: ' + errCliente.message);
+
+        // 2. Actualizamos o Creamos el contacto asociado
+        if (contactoNombre) {
+            if (contactoId) {
+                // Si ya existía un contacto, lo actualizamos
+                const { error: errContacto } = await _supabase
+                    .from('contactos_cliente')
+                    .update({ nombre_completo: contactoNombre, telefono: telefono })
+                    .eq('id', contactoId);
+                if (errContacto) throw new Error('Error al actualizar contacto.');
+            } else {
+                // Si la empresa no tenía contacto y ahora le pusieron uno, lo insertamos
+                const { error: errInsertContacto } = await _supabase
+                    .from('contactos_cliente')
+                    .insert([{ cliente_id: clienteId, nombre_completo: contactoNombre, telefono: telefono }]);
+                if (errInsertContacto) throw new Error('Error al crear nuevo contacto.');
+            }
+        }
+
+        // 3. Cerramos modal y recargamos la tabla
+        alert('✅ Cliente actualizado correctamente.');
+        cerrarModal('modal-editar-cliente');
+        cargarClientes();
+
+    } catch (error) {
+        console.error("Error completo:", error);
+        alert("❌ " + error.message);
+    }
 }
 
 function agregarFilaItem() {
