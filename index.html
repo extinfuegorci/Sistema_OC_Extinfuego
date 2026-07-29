@@ -162,9 +162,7 @@
         </aside>
 
         <!-- CONTENIDO PRINCIPAL -->
-        <main class="main-content">
-
-            <!-- HEADER SUPERIOR -->
+        <!-- HEADER SUPERIOR -->
             <header class="topbar">
                 <h1 id="titulo-seccion">Dashboard General</h1>
                 <div class="actions">
@@ -179,15 +177,18 @@
                 <div class="cards-grid">
                     <div class="card card-blue">
                         <h3>Total Gastado</h3>
-                        <p class="monto">Bs. 0.00</p>
+                        <!-- ✅ ID agregado aquí -->
+                        <p class="monto" id="metric-total-gastado">Bs. 0.00</p>
                     </div>
                     <div class="card card-green">
                         <h3>Ingresos Totales</h3>
-                        <p class="monto">Bs. 0.00</p>
+                        <!-- ✅ ID agregado aquí -->
+                        <p class="monto" id="metric-pagado">Bs. 0.00</p>
                     </div>
                     <div class="card card-orange">
                         <h3>Faltante / Por Gastar</h3>
-                        <p class="monto">Bs. 0.00</p>
+                        <!-- ✅ ID agregado aquí -->
+                        <p class="monto" id="metric-pendiente">Bs. 0.00</p>
                     </div>
                 </div>
 
@@ -219,8 +220,10 @@
                                 <th>ACCIONES</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-ordenes-body">
+                        <!-- ✅ Cambiamos el ID a 'tabla-dashboard-body' para que coincida con el JS -->
+                        <tbody id="tabla-dashboard-body">
                             <tr>
+                                <!-- ✅ Cambiamos el colspan a 8 para que abarque todas tus columnas -->
                                 <td colspan="8" class="text-center">No hay órdenes registradas.</td>
                             </tr>
                         </tbody>
