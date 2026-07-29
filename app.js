@@ -593,8 +593,12 @@ function redirigirCreacionEntidad() {
 
 async function guardarOrdenCompra() {
     try {
-        // 1. Recolectar datos principales de la cabecera
-        const numeroOc = document.getElementById('oc-num').value;
+        // 1. Recolectar datos principales de la cabecera y codificación
+        // IMPORTANTE: Asegúrate de tener estos inputs ocultos en tu HTML
+        const tipoCodigoId = document.getElementById('tipo_codigo_id')?.value;
+        const correlativoActual = document.getElementById('correlativo_actual')?.value;
+        const numeroOc = document.getElementById('oc-num').value; // Adaptado a tu ID
+        
         const proveedor = document.getElementById('proveedor-nombre').value;
         const contacto = document.getElementById('contacto-nombre').value;
         const fechaSolicitud = document.getElementById('fecha-solicitud').value;
@@ -611,6 +615,7 @@ async function guardarOrdenCompra() {
         const total = parseFloat(document.getElementById('lbl-total').innerText) || 0;
 
         // 2. Validaciones obligatorias
+        if (!tipoCodigoId || !numeroOc) return alert('⚠️ Por favor, haz clic en OC Nº y selecciona un código.');
         if (!proveedor) return alert('⚠️ Por favor, ingresa el nombre del proveedor.');
         if (!fechaSolicitud) return alert('⚠️ Por favor, selecciona la fecha de solicitud.');
         if (total <= 0) return alert('⚠️ El total de la orden debe ser mayor a 0. Asegúrate de agregar ítems válidos.');
@@ -638,7 +643,7 @@ async function guardarOrdenCompra() {
             //creado_por: userData.user.id // ID del usuario actual (Comentado temporalmente)
         };
 
-        // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado (con su ID)
+        // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado
         const { data: ordenInsertada, error: errorOrden } = await _supabase
             .from('ordenes')
             .insert([nuevaOrden])
@@ -667,7 +672,6 @@ async function guardarOrdenCompra() {
                     unidad: unidad,
                     descripcion: desc,
                     precio_unitario: precio
-                    // 👇 LÍNEA ELIMINADA: Ya no enviamos el subtotal porque Supabase lo calcula solo
                 });
             }
         });
@@ -679,10 +683,27 @@ async function guardarOrdenCompra() {
             alert('⚠️ La orden se guardó sin ningún producto en el detalle.');
         }
 
-        // 6. ¡Éxito y limpieza del formulario!
+        // 6. ACTUALIZAR EL CORRELATIVO DEL CÓDIGO EN SUPABASE
+        const nuevoCorrelativo = parseInt(correlativoActual) + 1;
+        const { error: errorUpdateCodigo } = await _supabase
+            .from('tipos_codificacion')
+            .update({ correlativo: nuevoCorrelativo })
+            .eq('id', tipoCodigoId);
+
+        if (errorUpdateCodigo) {
+            console.error("Error actualizando el correlativo en Supabase:", errorUpdateCodigo);
+            alert("⚠️ La orden se guardó, pero hubo un error al actualizar el número correlativo.");
+        }
+
+        // 7. ¡Éxito y limpieza del formulario!
         alert('✅ ¡Orden de Compra registrada con éxito!');
         
-        // Limpiamos cajas de texto
+        // Limpiamos cajas de texto (incluyendo los ocultos)
+        document.getElementById('oc-num').value = '';
+        if (document.getElementById('tipo_codigo_id')) document.getElementById('tipo_codigo_id').value = '';
+        if (document.getElementById('codigo_prefijo')) document.getElementById('codigo_prefijo').value = '';
+        if (document.getElementById('correlativo_actual')) document.getElementById('correlativo_actual').value = '';
+        
         document.getElementById('proveedor-nombre').value = '';
         document.getElementById('contacto-nombre').value = '';
         document.getElementById('facturar-a').value = '';
@@ -692,14 +713,10 @@ async function guardarOrdenCompra() {
         document.getElementById('fecha-solicitud').value = '';
         document.getElementById('fecha-entrega').value = '';
         
-        // Reiniciamos la tabla de ítems a 3 filas vacías (aprovechando tu función existente)
+        // Reiniciamos la tabla de ítems a 3 filas vacías
         document.getElementById('items-body').innerHTML = '';
         for (let i = 0; i < 3; i++) agregarFilaItem();
-        calcularTotales(); // Dejamos en 0.00 todo
-
-        // Pequeño truco: Autoincrementar visualmente el número de OC para la siguiente (Ej: 01-DKT -> 02-DKT)
-        const numeroActual = parseInt(numeroOc.split('-')[0]) || 0;
-        document.getElementById('oc-num').value = String(numeroActual + 1).padStart(2, '0') + '-DKT';
+        calcularTotales(); 
 
     } catch (error) {
         console.error(error);
