@@ -1003,79 +1003,69 @@ window.addEventListener('click', function(event) {
 // MÓDULO DE DASHBOARD Y REPORTES
 // ==========================================
 
+// ==========================================
+// MÓDULO DE DASHBOARD Y REPORTES
+// ==========================================
+
 async function cargarDashboard() {
     try {
         const tbody = document.getElementById('tabla-dashboard-body');
         
-        // 1. Mostrar mensaje de carga en la tabla
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Cargando información... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
+        // 1. Mostrar mensaje de carga
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Cargando información... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
 
-        // 2. Consultar a Supabase (Órdenes + Datos del Cliente vinculado)
-        // NOTA: Asegúrate de que la relación en tu BD se llame 'clientes' (o cambia el nombre en el select)
+        // 2. Consultar a Supabase (Solo necesitamos la tabla 'ordenes' porque ahí ya guardas proveedor_nombre y empresa_solicitante)
         const { data: ordenes, error } = await _supabase
             .from('ordenes')
-            .select(`
-                *,
-                clientes (nombre_comercial, razon_social)
-            `)
-            .order('fecha_emision', { ascending: false });
+            .select('*')
+            .order('fecha_solicitud', { ascending: false });
 
         if (error) throw error;
 
-        // 3. Variables para inicializar los cálculos de las métricas (Fase 2)
+        // 3. Variables para las métricas
         let totalGastado = 0;
         let totalPagado = 0;
         let totalPendiente = 0;
 
-        // 4. Limpiar la tabla para llenarla con datos reales
         if (tbody) tbody.innerHTML = '';
 
-        // Si no hay órdenes, mostramos un mensaje amigable
         if (ordenes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay órdenes registradas aún.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No hay órdenes registradas aún.</td></tr>';
         }
 
-        // 5. Recorrer cada orden obtenida
+        // 4. Recorrer cada orden
         ordenes.forEach(orden => {
-            // --- FASE 2: Realizar los cálculos de métricas ---
             const monto = parseFloat(orden.monto_total) || 0;
             totalGastado += monto;
             
-            // Evaluamos según el estado de la orden (ajusta los nombres de tus estados si son diferentes)
-            if (orden.estado === 'Pagado' || orden.estado === 'Completado') {
+            // Evaluamos según el estado de la orden
+            if (orden.estado === 'APROBADO' || orden.estado === 'PAGADO') {
                 totalPagado += monto;
-            } else if (orden.estado === 'Pendiente' || orden.estado === 'Emitido') {
+            } else if (orden.estado === 'PENDIENTE' || orden.estado === 'EMITIDO') {
                 totalPendiente += monto;
             }
 
-            // --- FASE 1: Construir la fila de la tabla ---
+            // Construir la fila
             const tr = document.createElement('tr');
             
-            // Asignar colores a los estados 
             let colorEstado = '#f59e0b'; // Naranja para pendiente
             if (orden.estado === 'APROBADO') colorEstado = '#10b981'; // Verde
             if (orden.estado === 'SOLICITUD_ANULACION') colorEstado = '#ef4444'; // Rojo
 
-            // Obtener el proveedor/cliente
-            const nombreProveedor = orden.clientes 
-                ? (orden.clientes.nombre_comercial || orden.clientes.razon_social) 
-                : 'Desconocido';
-                
-            // Asumiendo que guardas la empresa y fechas; ajusta los nombres de los campos ('empresa', 'fecha_deposito') según tu BD
-            const nombreEmpresa = orden.empresa || 'Extinfuego'; 
-            const fechaIngreso = new Date(orden.fecha_emision).toLocaleDateString();
-            const fechaDeposito = orden.fecha_deposito ? new Date(orden.fecha_deposito).toLocaleDateString() : '-';
+            // Formatear fechas (Manejo de nulos por si no hay fecha de entrega)
+            const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud).toLocaleDateString() : '-';
+            const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega).toLocaleDateString() : '-';
 
             tr.innerHTML = `
-                <td><strong>${orden.codigo_oc}</strong></td>
-                <td>${nombreProveedor}</td>
-                <td>${nombreEmpresa}</td>
+                <td><strong>${orden.numero_oc || '-'}</strong></td>
+                <td>${orden.proveedor_nombre || '-'}</td>
+                <td>${orden.empresa_solicitante || '-'}</td>
                 <td>${fechaIngreso}</td>
-                <td>${fechaDeposito}</td>
+                <td>${fechaEntrega}</td>
                 <td><strong>Bs. ${monto.toFixed(2)}</strong></td>
                 <td>
                     <span style="background-color: ${colorEstado}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        ${orden.estado || 'EMITIDO'}
+                        ${orden.estado || 'PENDIENTE'}
                     </span>
                 </td>
                 <td>
@@ -1087,10 +1077,14 @@ async function cargarDashboard() {
             if (tbody) tbody.appendChild(tr);
         });
 
-        // 6. Actualizar los valores en las tarjetas del HTML (Fase 2)
-        document.getElementById('metric-total-gastado').innerText = `Bs. ${totalGastado.toFixed(2)}`;
-        document.getElementById('metric-pagado').innerText = `Bs. ${totalPagado.toFixed(2)}`;
-        document.getElementById('metric-pendiente').innerText = `Bs. ${totalPendiente.toFixed(2)}`;
+        // 5. Actualizar tarjetas del HTML
+        const metricGastado = document.getElementById('metric-total-gastado');
+        const metricPagado = document.getElementById('metric-pagado');
+        const metricPendiente = document.getElementById('metric-pendiente');
+
+        if(metricGastado) metricGastado.innerText = `Bs. ${totalGastado.toFixed(2)}`;
+        if(metricPagado) metricPagado.innerText = `Bs. ${totalPagado.toFixed(2)}`;
+        if(metricPendiente) metricPendiente.innerText = `Bs. ${totalPendiente.toFixed(2)}`;
 
     } catch (error) {
         console.error("Error al cargar el dashboard:", error);
