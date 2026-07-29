@@ -163,26 +163,37 @@ function configurarEntornoUsuario(usuario) {
 // 4. GESTIÓN DE INTERFAZ Y VISTAS
 // ==========================================
 function cambiarVista(idVista, btnElement = null) {
-    document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    // 1. Mostrar la pantalla de transición palpitante
+    const loader = document.getElementById('pantalla-carga');
+    if (loader) loader.style.display = 'flex';
 
-    const vistaDestino = document.getElementById(`vista-${idVista}`);
-    if (vistaDestino) vistaDestino.classList.add('active');
-    if (btnElement) btnElement.classList.add('active');
+    // 2. Esperar 800ms para mostrar la animación antes de cambiar la vista
+    setTimeout(() => {
+        document.querySelectorAll('.vista').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-    const titulos = {
-        'dashboard': 'Dashboard General',
-        'nueva-orden': 'Emisión de Orden de Compra',
-        'clientes': 'Gestión de Clientes y Empresas',
-        'usuarios': 'Control de Usuarios y Permisos',
-        'bitacora': 'Bitácora de Auditoría'
-    };
-    
-    const elemTitulo = document.getElementById('titulo-seccion');
-    if (elemTitulo) elemTitulo.innerText = titulos[idVista] || 'Sistema OC';
+        const vistaDestino = document.getElementById(`vista-${idVista}`);
+        if (vistaDestino) vistaDestino.classList.add('active');
+        if (btnElement) btnElement.classList.add('active');
 
-    if (idVista === 'clientes') cargarClientes();
-    if (idVista === 'usuarios') cargarUsuarios();
+        const titulos = {
+            'dashboard': 'Dashboard General',
+            'nueva-orden': 'Emisión de Orden de Compra',
+            'clientes': 'Gestión de Clientes y Empresas',
+            'usuarios': 'Control de Usuarios y Permisos',
+            'bitacora': 'Bitácora de Auditoría'
+        };
+        
+        const elemTitulo = document.getElementById('titulo-seccion');
+        if (elemTitulo) elemTitulo.innerText = titulos[idVista] || 'Sistema OC';
+
+        if (idVista === 'clientes') cargarClientes();
+        if (idVista === 'usuarios') cargarUsuarios();
+
+        // 3. Ocultar la pantalla de transición
+        if (loader) loader.style.display = 'none';
+        
+    }, 800); // 800 milisegundos de tiempo
 }
 
 function abrirModal(idModal) {
