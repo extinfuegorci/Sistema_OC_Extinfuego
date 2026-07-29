@@ -16,7 +16,15 @@ window.onload = () => {
     verificarSesionPrevia();
     configurarOjoPassword();
     cargarListaPrivilegios(); // <-- CORRECCIÓN: Ahora la app descarga los roles al iniciar
-    cargarDashboard();
+    _supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+        // Solo cargar los datos si ya confirmó que hay sesión
+        cargarDashboard(); 
+    } else {
+        console.log("No hay sesión activa, redirigiendo al login...");
+        // window.location.href = 'login.html';
+    }
+});
     // ==========================================
     // LÓGICA DE INTERFAZ: FORMA DE PAGO
     // ==========================================
