@@ -832,7 +832,7 @@ function seleccionarCodigo(id, codigo, correlativo) {
     document.getElementById('correlativo_actual').value = correlativo;
     
     // Formato visual: [Número]-[CÓDIGO]
-    document.getElementById('oc_numero').value = `${siguienteNumero}-${codigo}`;
+    document.getElementById('oc_num').value = `${siguienteNumero}-${codigo}`;
     
     cerrarModalCodigos();
 }
