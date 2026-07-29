@@ -17,6 +17,45 @@ window.onload = () => {
     configurarOjoPassword();
     cargarListaPrivilegios(); // <-- CORRECCIÓN: Ahora la app descarga los roles al iniciar
     cargarDashboard();
+    // ==========================================
+    // LÓGICA DE INTERFAZ: FORMA DE PAGO
+    // ==========================================
+    
+    const selectFormaPago = document.getElementById('forma-pago');
+    const contenedorCredito = document.getElementById('contenedor-credito');
+    const contenedorAnticipo = document.getElementById('contenedor-anticipo');
+    
+    // Inputs que necesitan validación dinámica
+    const inputFechaVencimiento = document.getElementById('fecha-vencimiento');
+    const inputMontoPagado = document.getElementById('monto-pagado');
+    
+    if (selectFormaPago) {
+        selectFormaPago.addEventListener('change', function() {
+            const forma = this.value;
+    
+            // 1. Ocultar todos los contenedores y limpiar validaciones por defecto
+            contenedorCredito.style.display = 'none';
+            contenedorAnticipo.style.display = 'none';
+            
+            inputFechaVencimiento.required = false;
+            inputMontoPagado.required = false;
+    
+            // Limpiar los valores al cambiar de opción para evitar datos basura
+            inputFechaVencimiento.value = '';
+            inputMontoPagado.value = '';
+            document.getElementById('porcentaje-anticipo').value = '';
+    
+            // 2. Mostrar el contenedor correspondiente y exigir el dato obligatorio
+            if (forma === 'CREDITO') {
+                contenedorCredito.style.display = 'block';
+                inputFechaVencimiento.required = true; // Obligamos a poner fecha
+                
+            } else if (forma === 'ANTICIPO') {
+                contenedorAnticipo.style.display = 'block';
+                inputMontoPagado.required = true; // Obligamos a poner el monto adelantado
+            }
+        });
+    }
     // Generar las 3 filas por defecto para Órdenes de Compra
     for (let i = 0; i < 1; i++) agregarFilaItem();
 };
@@ -606,10 +645,9 @@ function redirigirCreacionEntidad() {
 async function guardarOrdenCompra() {
     try {
         // 1. Recolectar datos principales de la cabecera y codificación
-        // IMPORTANTE: Asegúrate de tener estos inputs ocultos en tu HTML
         const tipoCodigoId = document.getElementById('tipo_codigo_id')?.value;
         const correlativoActual = document.getElementById('correlativo_actual')?.value;
-        const numeroOc = document.getElementById('oc-num').value; // Adaptado a tu ID
+        const numeroOc = document.getElementById('oc-num').value; 
         
         const proveedor = document.getElementById('proveedor-nombre').value;
         const contacto = document.getElementById('contacto-nombre').value;
@@ -626,10 +664,27 @@ async function guardarOrdenCompra() {
         const descuento = parseFloat(document.getElementById('descuento-pct').value) || 0;
         const total = parseFloat(document.getElementById('lbl-total').innerText) || 0;
 
+        // --- NUEVA LÓGICA DE FORMAS DE PAGO ---
+        let montoPagadoFinal = 0;
+        let fechaVencimientoFinal = null;
+        let porcentajeAnticipoFinal = null;
+
+        if (formaPago === 'CONTADO') {
+            montoPagadoFinal = total;
+        } else if (formaPago === 'CREDITO') {
+            fechaVencimientoFinal = document.getElementById('fecha-vencimiento')?.value || null;
+            if (!fechaVencimientoFinal) return alert('⚠️ Por favor, ingresa la fecha de vencimiento para el crédito.');
+        } else if (formaPago === 'ANTICIPO') {
+            montoPagadoFinal = parseFloat(document.getElementById('monto-pagado')?.value) || 0;
+            porcentajeAnticipoFinal = parseFloat(document.getElementById('porcentaje-anticipo')?.value) || null;
+            if (montoPagadoFinal <= 0) return alert('⚠️ Por favor, ingresa un monto de anticipo válido mayor a 0.');
+        }
+
         // 2. Validaciones obligatorias
         if (!tipoCodigoId || !numeroOc) return alert('⚠️ Por favor, haz clic en OC Nº y selecciona un código.');
         if (!proveedor) return alert('⚠️ Por favor, ingresa el nombre del proveedor.');
         if (!fechaSolicitud) return alert('⚠️ Por favor, selecciona la fecha de solicitud.');
+        if (!formaPago) return alert('⚠️ Por favor, selecciona una forma de pago.');
         if (total <= 0) return alert('⚠️ El total de la orden debe ser mayor a 0. Asegúrate de agregar ítems válidos.');
 
         // 3. Obtener quién está creando la orden (Seguridad)
@@ -642,7 +697,7 @@ async function guardarOrdenCompra() {
             proveedor_nombre: proveedor,
             contacto_nombre: contacto,
             fecha_solicitud: fechaSolicitud,
-            fecha_entrega: fechaEntrega || null, // Si está vacío mandamos null
+            fecha_entrega: fechaEntrega || null, 
             facturar_a: facturarA,
             nit_factura: nitFactura,
             empresa_solicitante: empresaSolicitante,
@@ -651,11 +706,16 @@ async function guardarOrdenCompra() {
             descuento_porcentaje: descuento,
             monto_total: total,
             observacion: observacion,
-            estado: 'PENDIENTE', // Estado por defecto
-            //creado_por: userData.user.id // ID del usuario actual (Comentado temporalmente)
+            estado: 'PENDIENTE', 
+            
+            // Nuevos campos financieros
+            monto_pagado: montoPagadoFinal,
+            fecha_vencimiento: fechaVencimientoFinal,
+            porcentaje_anticipo: porcentajeAnticipoFinal
+            
+            //creado_por: userData.user.id 
         };
 
-        // El .select() al final es vital: obliga a Supabase a devolvernos el registro recién creado
         const { data: ordenInsertada, error: errorOrden } = await _supabase
             .from('ordenes')
             .insert([nuevaOrden])
@@ -663,7 +723,7 @@ async function guardarOrdenCompra() {
 
         if (errorOrden) throw new Error('Error al guardar la orden (Cabecera): ' + errorOrden.message);
         
-        const idOrdenGenerada = ordenInsertada[0].id; // ¡Capturamos el ID mágico!
+        const idOrdenGenerada = ordenInsertada[0].id;
 
         // 5. Inserción de los Ítems (Detalle)
         const filas = document.querySelectorAll('#items-body tr');
@@ -675,10 +735,9 @@ async function guardarOrdenCompra() {
             const desc = tr.querySelector('.item-desc').value;
             const precio = parseFloat(tr.querySelector('.item-precio').value) || 0;
 
-            // Filtramos: Solo guardamos filas que tengan descripción y cantidad válida
             if (desc.trim() !== '' && cant > 0) {
                 itemsAInsertar.push({
-                    orden_id: idOrdenGenerada, // Enlazamos con la cabecera
+                    orden_id: idOrdenGenerada, 
                     numero_item: index + 1,
                     cantidad: cant,
                     unidad: unidad,
@@ -725,7 +784,12 @@ async function guardarOrdenCompra() {
         document.getElementById('fecha-solicitud').value = '';
         document.getElementById('fecha-entrega').value = '';
         
-        // Reiniciamos la tabla de ítems a 3 filas vacías
+        // Limpiamos select de pago y disparamos el evento para ocultar los contenedores dinámicos
+        const selectPago = document.getElementById('forma-pago');
+        selectPago.value = '';
+        selectPago.dispatchEvent(new Event('change'));
+        
+        // Reiniciamos la tabla de ítems a 1 fila vacía (como lo tenías configurado)
         document.getElementById('items-body').innerHTML = '';
         for (let i = 0; i < 1; i++) agregarFilaItem();
         calcularTotales(); 
@@ -735,10 +799,6 @@ async function guardarOrdenCompra() {
         alert('❌ Ocurrió un error: ' + error.message);
     }
 }
-
-// ==========================================
-// MÓDULO: TIPOS DE CODIFICACIÓN (OC Nº)
-// ==========================================
 
 // ==========================================
 // MÓDULO: TIPOS DE CODIFICACIÓN (OC Nº)
