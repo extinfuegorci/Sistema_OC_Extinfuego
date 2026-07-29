@@ -18,7 +18,7 @@ window.onload = () => {
     cargarListaPrivilegios(); // <-- CORRECCIÓN: Ahora la app descarga los roles al iniciar
     
     // Generar las 3 filas por defecto para Órdenes de Compra
-    for (let i = 0; i < 3; i++) agregarFilaItem();
+    for (let i = 0; i < 1; i++) agregarFilaItem();
 };
 
 // ==========================================
@@ -715,7 +715,7 @@ async function guardarOrdenCompra() {
         
         // Reiniciamos la tabla de ítems a 3 filas vacías
         document.getElementById('items-body').innerHTML = '';
-        for (let i = 0; i < 3; i++) agregarFilaItem();
+        for (let i = 0; i < 1; i++) agregarFilaItem();
         calcularTotales(); 
 
     } catch (error) {
