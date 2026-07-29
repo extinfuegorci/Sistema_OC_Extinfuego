@@ -397,6 +397,51 @@
                                 <strong id="lbl-total">0.00</strong>
                             </div>
                         </div>
+                        <!-- Módulo de Historial y Registro de Pagos (Oculto por defecto en Modo Creación) -->
+                        <div id="modulo-pagos" class="mt-4 p-4" style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
+                            <h4 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Historial de Pagos</h4>
+                            
+                            <!-- Tabla donde se cargarán los recibos anteriores -->
+                            <table class="table table-sm table-bordered mt-3" style="background: white;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nº de Recibo</th>
+                                        <th>Fecha de Pago</th>
+                                        <th>Monto (Bs.)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-historial-pagos">
+                                    <!-- Los registros se inyectarán aquí vía JavaScript -->
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No hay pagos registrados.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        
+                            <hr class="my-4">
+                        
+                            <!-- Formulario para agregar un nuevo pago -->
+                            <h5>Registrar Nuevo Pago</h5>
+                            <div class="row mt-2">
+                                <div class="col-md-4 form-group">
+                                    <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
+                                    <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label for="nuevo-pago-fecha">Fecha</label>
+                                    <input type="date" id="nuevo-pago-fecha" class="form-control">
+                                </div>
+                                <div class="col-md-3 form-group">
+                                    <label for="nuevo-pago-monto">Monto (Bs.)</label>
+                                    <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
+                                </div>
+                                <div class="col-md-2 form-group d-flex align-items-end">
+                                    <button type="button" class="btn btn-success w-100" id="btn-guardar-pago">
+                                        <i class="fas fa-plus"></i> Añadir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-actions">
