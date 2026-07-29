@@ -644,7 +644,7 @@ function redirigirCreacionEntidad() {
 
 async function guardarOrdenCompra() {
     try {
-        // 1. Recolectar datos principales de la cabecera y codificación
+        // 1. Recolectar datos principales
         const tipoCodigoId = document.getElementById('tipo_codigo_id')?.value;
         const correlativoActual = document.getElementById('correlativo_actual')?.value;
         const numeroOc = document.getElementById('oc-num').value; 
@@ -664,7 +664,7 @@ async function guardarOrdenCompra() {
         const descuento = parseFloat(document.getElementById('descuento-pct').value) || 0;
         const total = parseFloat(document.getElementById('lbl-total').innerText) || 0;
 
-        // --- NUEVA LÓGICA DE FORMAS DE PAGO ---
+        // Lógica de pagos inicial
         let montoPagadoFinal = 0;
         let fechaVencimientoFinal = null;
         let porcentajeAnticipoFinal = null;
@@ -685,11 +685,9 @@ async function guardarOrdenCompra() {
         if (!proveedor) return alert('⚠️ Por favor, ingresa el nombre del proveedor.');
         if (!fechaSolicitud) return alert('⚠️ Por favor, selecciona la fecha de solicitud.');
         if (!formaPago) return alert('⚠️ Por favor, selecciona una forma de pago.');
-        if (total <= 0) return alert('⚠️ El total de la orden debe ser mayor a 0. Asegúrate de agregar ítems válidos.');
+        if (total <= 0) return alert('⚠️ El total debe ser mayor a 0.');
 
-        // 3. Obtener quién está creando la orden (Seguridad)
-        const { data: userData, error: userError } = await _supabase.auth.getUser();
-        if (userError || !userData.user) throw new Error('No se pudo verificar tu sesión. Inicia sesión nuevamente.');
+        // 3. (Omitido temporalmente: Verificación de usuario)
         
         // 4. Inserción en la tabla principal (ordenes)
         const nuevaOrden = {
@@ -707,13 +705,9 @@ async function guardarOrdenCompra() {
             monto_total: total,
             observacion: observacion,
             estado: 'PENDIENTE', 
-            
-            // Nuevos campos financieros
-            monto_pagado: montoPagadoFinal,
+            monto_pagado: montoPagadoFinal, // El trigger lo sobreescribirá de todos modos, pero es buena práctica enviarlo
             fecha_vencimiento: fechaVencimientoFinal,
             porcentaje_anticipo: porcentajeAnticipoFinal
-            
-            //creado_por: userData.user.id 
         };
 
         const { data: ordenInsertada, error: errorOrden } = await _supabase
@@ -721,7 +715,7 @@ async function guardarOrdenCompra() {
             .insert([nuevaOrden])
             .select(); 
 
-        if (errorOrden) throw new Error('Error al guardar la orden (Cabecera): ' + errorOrden.message);
+        if (errorOrden) throw new Error('Error al guardar la orden: ' + errorOrden.message);
         
         const idOrdenGenerada = ordenInsertada[0].id;
 
@@ -749,12 +743,38 @@ async function guardarOrdenCompra() {
 
         if (itemsAInsertar.length > 0) {
             const { error: errorItems } = await _supabase.from('items_orden').insert(itemsAInsertar);
-            if (errorItems) throw new Error('La orden se creó, pero hubo un fallo guardando los ítems: ' + errorItems.message);
+            if (errorItems) throw new Error('Falló el guardado de ítems: ' + errorItems.message);
         } else {
-            alert('⚠️ La orden se guardó sin ningún producto en el detalle.');
+            alert('⚠️ La orden se guardó sin productos en el detalle.');
         }
 
-        // 6. ACTUALIZAR EL CORRELATIVO DEL CÓDIGO EN SUPABASE
+        // =================================================================
+        // 5.5 NUEVO: INSERCIÓN AUTOMÁTICA EN EL HISTORIAL DE PAGOS
+        // =================================================================
+        if ((formaPago === 'ANTICIPO' || formaPago === 'CONTADO') && montoPagadoFinal > 0) {
+            // Nota: Si es al contado, también registramos el pago total como recibo para que quede constancia
+            const identificadorRecibo = formaPago === 'CONTADO' ? 'PAGO-CONTADO' : 'ANTICIPO-INICIAL';
+            
+            const pagoInicial = {
+                orden_id: idOrdenGenerada,
+                numero_recibo: identificadorRecibo,
+                monto: montoPagadoFinal,
+                fecha_pago: fechaSolicitud // Usamos la misma fecha de creación de la OC
+            };
+
+            const { error: errorPago } = await _supabase
+                .from('historial_pagos')
+                .insert([pagoInicial]);
+
+            if (errorPago) {
+                console.error("Error al registrar el pago inicial en el historial:", errorPago);
+                // No detenemos el proceso con throw, solo avisamos
+                alert("⚠️ La orden se creó, pero hubo un problema guardando el recibo inicial en el historial.");
+            }
+        }
+        // =================================================================
+
+        // 6. ACTUALIZAR EL CORRELATIVO DEL CÓDIGO
         const nuevoCorrelativo = parseInt(correlativoActual) + 1;
         const { error: errorUpdateCodigo } = await _supabase
             .from('tipos_codificacion')
@@ -762,34 +782,29 @@ async function guardarOrdenCompra() {
             .eq('id', tipoCodigoId);
 
         if (errorUpdateCodigo) {
-            console.error("Error actualizando el correlativo en Supabase:", errorUpdateCodigo);
-            alert("⚠️ La orden se guardó, pero hubo un error al actualizar el número correlativo.");
+            console.error("Error actualizando correlativo:", errorUpdateCodigo);
+            alert("⚠️ Error al actualizar el número correlativo.");
         }
 
-        // 7. ¡Éxito y limpieza del formulario!
+        // 7. Éxito y limpieza
         alert('✅ ¡Orden de Compra registrada con éxito!');
         
-        // Limpiamos cajas de texto (incluyendo los ocultos)
-        document.getElementById('oc-num').value = '';
-        if (document.getElementById('tipo_codigo_id')) document.getElementById('tipo_codigo_id').value = '';
-        if (document.getElementById('codigo_prefijo')) document.getElementById('codigo_prefijo').value = '';
-        if (document.getElementById('correlativo_actual')) document.getElementById('correlativo_actual').value = '';
+        // Limpiar inputs de texto
+        const idsALimpiar = ['oc-num', 'tipo_codigo_id', 'codigo_prefijo', 'correlativo_actual', 
+                             'proveedor-nombre', 'contacto-nombre', 'facturar-a', 'nit-factura', 
+                             'observacion', 'fecha-solicitud', 'fecha-entrega'];
+        idsALimpiar.forEach(id => {
+            if (document.getElementById(id)) document.getElementById(id).value = '';
+        });
         
-        document.getElementById('proveedor-nombre').value = '';
-        document.getElementById('contacto-nombre').value = '';
-        document.getElementById('facturar-a').value = '';
-        document.getElementById('nit-factura').value = '';
-        document.getElementById('observacion').value = '';
         document.getElementById('descuento-pct').value = '0';
-        document.getElementById('fecha-solicitud').value = '';
-        document.getElementById('fecha-entrega').value = '';
         
-        // Limpiamos select de pago y disparamos el evento para ocultar los contenedores dinámicos
+        // Limpiar select de pago
         const selectPago = document.getElementById('forma-pago');
         selectPago.value = '';
         selectPago.dispatchEvent(new Event('change'));
         
-        // Reiniciamos la tabla de ítems a 1 fila vacía (como lo tenías configurado)
+        // Reiniciar ítems
         document.getElementById('items-body').innerHTML = '';
         for (let i = 0; i < 1; i++) agregarFilaItem();
         calcularTotales(); 
