@@ -1012,7 +1012,7 @@ async function cargarDashboard() {
 
         // 2. Consultar a Supabase (Órdenes + Datos del Cliente vinculado)
         // NOTA: Asegúrate de que la relación en tu BD se llame 'clientes' (o cambia el nombre en el select)
-        const { data: ordenes, error } = await supabase
+        const { data: ordenes, error } = await _supabase
             .from('ordenes')
             .select(`
                 *,
