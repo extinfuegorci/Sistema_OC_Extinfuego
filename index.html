@@ -229,12 +229,13 @@
                         <h2>Emisión de Orden de Compra</h2>
                         <!-- 1. Reemplazar el input actual de OC Nº -->
                         <div class="form-group">
-                            <label for="oc_num">OC Nº:</label>
+                            <label for="oc-num">OC Nº:</label>
                             <!-- Campos ocultos para la codificación de la OC -->
                             <input type="hidden" id="tipo_codigo_id" value="">
                             <input type="hidden" id="codigo_prefijo" value="">
                             <input type="hidden" id="correlativo_actual" value="">
-                            <!-- Lo hacemos readonly para que solo se llene a través del modal -->
+                            
+                            <!-- Input visible, readonly para que solo se llene a través del modal -->
                             <input 
                                 type="text" 
                                 id="oc-num" 
@@ -251,10 +252,6 @@
                                     padding-right: 30px;
                                 "
                             >
-                            <!-- Campos ocultos para manejar la lógica internamente -->
-                            <input type="hidden" id="tipo_codigo_id">
-                            <input type="hidden" id="codigo_prefijo">
-                            <input type="hidden" id="correlativo_actual">
                         </div>
 
             <!-- Nuevo Modal para Tipos de Codificación (Centrado) -->
