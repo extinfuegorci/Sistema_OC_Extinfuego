@@ -832,7 +832,7 @@ function seleccionarCodigo(id, codigo, correlativo) {
     document.getElementById('correlativo_actual').value = correlativo;
     
     // Formato visual: [Número]-[CÓDIGO]
-    document.getElementById('oc_num').value = `${siguienteNumero}-${codigo}`;
+    document.getElementById('oc-num').value = `${siguienteNumero}-${codigo}`; // <-- CORREGIDO A 'oc-num'
     
     cerrarModalCodigos();
 }
@@ -963,3 +963,27 @@ function calcularTotales() {
     if (lblSubtotal) lblSubtotal.innerText = subtotalGeneral.toFixed(2);
     if (lblTotal) lblTotal.innerText = (subtotalGeneral - montoDescuento).toFixed(2);
 }
+// ==========================================
+// CERRAR MODALES CON ESC O CLIC AFUERA
+// ==========================================
+
+// Detectar tecla ESC
+window.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modales = document.querySelectorAll('.modal');
+        modales.forEach(modal => {
+            if (modal.style.display === 'flex' || modal.style.display === 'block') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+});
+
+// Detectar clic en la parte oscura del modal (fuera del contenido)
+window.addEventListener('click', function(event) {
+    // Si el elemento sobre el que hicimos clic tiene la clase 'modal' 
+    // (el fondo gris semitransparente), lo cerramos.
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+});
