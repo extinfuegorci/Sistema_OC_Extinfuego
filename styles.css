@@ -198,3 +198,77 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
     align-items: center; /* Centra verticalmente */
     z-index: 1000;
 }
+/* ==========================================
+   ANIMACIONES Y TRANSICIONES VISUALES
+   ========================================== */
+
+/* 1. Efecto suave para cuando entras a una nueva vista */
+.vista {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* 2. Efecto de aparición suave para los fondos oscuros de los modales */
+.modal {
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* 3. Efecto de "deslizar hacia abajo" para las cajitas blancas de los modales */
+.modal-content {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* 4. Estilos de la pantalla de carga con el logo palpitante */
+#pantalla-carga {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #f4f7fe; /* Mismo fondo de tu login */
+    z-index: 9999; /* Por encima de todo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.logo-carga {
+    text-align: center;
+    color: #ef4444; /* Rojo Extinfuego */
+    /* Aquí aplicamos la animación del latido */
+    animation: palpito 1s infinite ease-in-out;
+}
+
+.logo-carga i {
+    font-size: 80px;
+}
+
+.logo-carga h2 {
+    color: #1e293b;
+    margin-top: 10px;
+    font-size: 24px;
+}
+
+/* --- KEYFRAMES (Las instrucciones de las animaciones) --- */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { 
+        transform: translateY(-30px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+@keyframes palpito {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; } /* Crece un 15% */
+    100% { transform: scale(1); opacity: 0.8; }
+}
