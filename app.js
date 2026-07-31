@@ -1110,7 +1110,7 @@ window.addEventListener('click', function(event) {
 
 async function cargarDashboard() {
     try {
-        const tbody = document.getElementById('tabla-dashboard-body');
+        const tbody = document.getElementById('cuerpo-tabla-dashboard');
         
         // 1. Mostrar mensaje de carga
         if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 20px;">Cargando información... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
