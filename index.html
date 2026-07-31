@@ -232,25 +232,20 @@
                 </div>
 
                 <div class="table-container">
-                    <table class="data-table">
-                        <thead>
+                    <table class="table-dashboard" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
                             <tr>
-                                <th>OC N°</th>
-                                <th>PROVEEDOR</th>
-                                <th>EMPRESA</th>
-                                <th>FECHA ING.</th>
-                                <th>FECHA DEP.</th>
-                                <th>MONTO TOTAL</th>
-                                <th>ESTADO</th>
-                                <th>ACCIONES</th>
+                                <th style="padding: 10px;">OC Nº</th>
+                                <th style="padding: 10px;">CLIENTE</th>
+                                <th style="padding: 10px;">FECHA SOLICITUD</th>
+                                <th style="padding: 10px;">FECHA ENTREGA</th>
+                                <th style="padding: 10px;">ESTADO ENTREGA</th>
+                                <th style="padding: 10px;">ESTADO PAGO</th>
+                                <th style="padding: 10px; text-align: center;">ACCIONES</th>
                             </tr>
                         </thead>
-                        <!-- ✅ Cambiamos el ID a 'tabla-dashboard-body' para que coincida con el JS -->
-                        <tbody id="tabla-dashboard-body">
-                            <tr>
-                                <!-- ✅ Cambiamos el colspan a 8 para que abarque todas tus columnas -->
-                                <td colspan="8" class="text-center">No hay órdenes registradas.</td>
-                            </tr>
+                        <tbody id="cuerpo-tabla-dashboard">
+                            <!-- Aquí JavaScript inyectará las filas -->
                         </tbody>
                     </table>
                 </div>
@@ -530,13 +525,26 @@
                         </div>
                     </div> <!-- Cierra totals-section -->
 
-                    <div class="form-actions mt-15"
-                        style="display: flex; justify-content: flex-start; margin-top: 20px;">
-                        <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
-                            <i class="ri-save-line"></i> Guardar Orden de Compra
-                        </button>
-                    </div>
+                    <div class="form-actions mt-15" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                        
+                        <!-- Lado Izquierdo: Guardar -->
+                        <div>
+                            <button class="btn btn-primary btn-lg" id="btn-guardar-orden" onclick="guardarOrdenCompra()">
+                                <i class="ri-save-line"></i> Guardar Orden de Compra
+                            </button>
+                        </div>
 
+                        <!-- Lado Derecho: Acciones Especiales (Solo visibles al editar una orden existente) -->
+                        <div id="botones-edicion-orden" style="display: none; gap: 10px;">
+                            <button class="btn" style="background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="solicitarAprobacion('COMPLETADA')">
+                                <i class="ri-check-double-line"></i> Orden Completada
+                            </button>
+                            <button class="btn" style="background-color: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="solicitarAprobacion('ANULADA')">
+                                <i class="ri-close-circle-line"></i> Anular Orden
+                            </button>
+                        </div>
+
+                    </div>
                 </div> <!-- Cierra form-container -->
             </section> <!-- Cierra vista-nueva-orden -->
 
