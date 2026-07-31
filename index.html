@@ -438,7 +438,7 @@
                                         <tr>
                                             <th
                                                 style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: 600;">
-                                                Nº Recibo</th>
+                                                Nº Pago</th>
                                             <th
                                                 style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: 600;">
                                                 Fecha</th>
@@ -456,11 +456,12 @@
                                         </tr>
                                     </tbody>
                                     <!-- Fila de ingreso rápido -->
-                                    <tfoot style="border-top: 1px solid #94a3b8; background: #f1f5f9;">
+                                    <tbody style="border-top: 2px solid #94a3b8; background: #f1f5f9;">
                                         <tr>
                                             <td style="padding: 0; border-right: 1px solid #cbd5e1;">
-                                                <input type="text" id="nuevo-recibo" placeholder="REC-001"
-                                                    style="width: 100%; border: none; padding: 6px; text-align: center; background: transparent; outline: none; text-transform: uppercase;">
+                                                <input type="text" id="nuevo-recibo" value="1" readonly
+                                                    style="width: 100%; border: none; padding: 6px; text-align: center; background: #e2e8f0; color: #64748b; font-weight: bold; outline: none; cursor: not-allowed;"
+                                                    title="Autogenerado">
                                             </td>
                                             <td style="padding: 0; border-right: 1px solid #cbd5e1;">
                                                 <input type="date" id="nuevo-pago-fecha"
@@ -478,6 +479,33 @@
                                                     <i class="ri-add-line"></i>
                                                 </button>
                                             </td>
+                                        </tr>
+                                    </tbody>
+                                    <!-- Footer con Resumen de Saldos -->
+                                    <tfoot style="border-top: 2px solid #94a3b8; background: #fff; font-size: 11px;">
+                                        <tr>
+                                            <td colspan="2"
+                                                style="text-align: right; padding: 4px 8px; font-weight: bold; color: #475569;">
+                                                TOTAL A PAGAR:</td>
+                                            <td colspan="2"
+                                                style="text-align: left; padding: 4px 8px; font-weight: bold; color: #0f172a;"
+                                                id="pago-total-pagar">0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2"
+                                                style="text-align: right; padding: 4px 8px; font-weight: bold; color: #10b981;">
+                                                TOTAL PAGADO:</td>
+                                            <td colspan="2"
+                                                style="text-align: left; padding: 4px 8px; font-weight: bold; color: #10b981;"
+                                                id="pago-total-pagado">0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2"
+                                                style="text-align: right; padding: 4px 8px; font-weight: bold; color: #ef4444;">
+                                                SALDO PENDIENTE:</td>
+                                            <td colspan="2"
+                                                style="text-align: left; padding: 4px 8px; font-weight: bold; color: #ef4444;"
+                                                id="pago-saldo-pendiente">0.00</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -502,7 +530,8 @@
                         </div>
                     </div> <!-- Cierra totals-section -->
 
-                    <div class="form-actions mt-15" style="display: flex; justify-content: flex-start; margin-top: 20px;">
+                    <div class="form-actions mt-15"
+                        style="display: flex; justify-content: flex-start; margin-top: 20px;">
                         <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
                             <i class="ri-save-line"></i> Guardar Orden de Compra
                         </button>
