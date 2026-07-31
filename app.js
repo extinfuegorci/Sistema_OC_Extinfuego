@@ -1312,3 +1312,94 @@ function actualizarSaldosPagos() {
         inputRecibo.value = filasPagos.length + 1; 
     }
 }
+// Funciones de diseño para los estados
+function obtenerBadgeEntrega(estado) {
+    if (estado === 'ENTREGADO') {
+        return `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i class="ri-checkbox-circle-line"></i> ENTREGADO</span>`;
+    }
+    return `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i class="ri-time-line"></i> PENDIENTE</span>`;
+}
+
+function obtenerBadgePago(estado) {
+    if (estado === 'PAGADO') {
+        return `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i class="ri-money-dollar-circle-line"></i> PAGADO</span>`;
+    }
+    return `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;"><i class="ri-error-warning-line"></i> PEND. DE PAGO</span>`;
+}
+
+// Así debería verse el inyectado de la fila de tu Dashboard en tu función de obtenerOrdenes:
+/* 
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td style="padding: 10px;">${orden.codigo_oc}</td>
+        <td style="padding: 10px; font-weight: bold;">${orden.cliente_factura}</td>
+        <td style="padding: 10px;">${orden.fecha_solicitud}</td>
+        <td style="padding: 10px;">${orden.fecha_entrega}</td>
+        <td style="padding: 10px;">${obtenerBadgeEntrega(orden.estado_entrega)}</td>
+        <td style="padding: 10px;">${obtenerBadgePago(orden.estado_pago)}</td>
+        <td style="padding: 10px; text-align: center;">
+            <button onclick="editarOrden('${orden.id}')" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 18px;" title="Ver/Editar Orden">
+                <i class="ri-eye-line"></i>
+            </button>
+        </td>
+    `;
+*/
+
+// Variable global para saber qué orden estamos editando
+let idOrdenActualEdicion = null;
+
+async function editarOrden(idOrden) {
+    idOrdenActualEdicion = idOrden;
+    
+    // 1. Aquí harías tus consultas a Supabase para traer los datos de la orden, los ítems y los pagos usando el 'idOrden'
+    // const ordenData = ... 
+    
+    // 2. Muestras los botones de acción del lado derecho
+    document.getElementById('botones-edicion-orden').style.display = 'flex';
+    
+    // (Opcional) Puedes cambiar el texto del botón de guardar para que diga "Actualizar"
+    document.getElementById('btn-guardar-orden').innerHTML = '<i class="ri-refresh-line"></i> Actualizar Orden';
+
+    // 3. Cambiar a la vista de "Nueva Orden" (que ahora funciona como Modo Edición)
+    mostrarVista('vista-nueva-orden'); // Asumiendo que esta es tu función de navegación
+    
+    console.log("Cargando datos de la orden ID:", idOrden);
+    // 4. Llenarías tus inputs y tablas con los datos recuperados
+}
+
+async function solicitarAprobacion(tipoAccion) {
+    if (!idOrdenActualEdicion) {
+        alert("Error: No hay una orden seleccionada.");
+        return;
+    }
+
+    // Textos dinámicos según el botón que se presionó
+    const accionTexto = tipoAccion === 'COMPLETADA' ? 'dar por COMPLETADA' : 'ANULAR';
+    const estadoAprobacion = `APROBACIÓN_${tipoAccion}`; // Ejemplo: "APROBACIÓN_ANULADA"
+
+    // Ventana emergente de confirmación nativa
+    const confirmacion = confirm(`¿Estás seguro de que deseas ${accionTexto} esta orden?\n\nLa orden pasará a estado de APROBACIÓN y un Administrador deberá validar esta acción.`);
+
+    if (confirmacion) {
+        try {
+            // Aquí haces el Update a tu tabla de Supabase. Algo como esto:
+            /*
+            const { data, error } = await supabase
+                .from('ordenes')
+                .update({ estado_aprobacion: estadoAprobacion }) // Asumiendo que agregas esta columna a tu DB
+                .eq('id', idOrdenActualEdicion);
+
+            if (error) throw error;
+            */
+
+            alert(`✅ Solicitud enviada con éxito. La orden se encuentra pendiente de aprobación para ser ${accionTexto}.`);
+            
+            // Volver al dashboard
+            mostrarVista('vista-dashboard'); // Asumiendo que esta es tu función para volver
+            
+        } catch (error) {
+            console.error("Error al solicitar aprobación:", error);
+            alert("Hubo un error al procesar la solicitud.");
+        }
+    }
+}
