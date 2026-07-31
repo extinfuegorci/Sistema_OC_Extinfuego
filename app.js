@@ -1373,33 +1373,56 @@ async function solicitarAprobacion(tipoAccion) {
         return;
     }
 
-    // Textos dinámicos según el botón que se presionó
-    const accionTexto = tipoAccion === 'COMPLETADA' ? 'dar por COMPLETADA' : 'ANULAR';
-    const estadoAprobacion = `APROBACIÓN_${tipoAccion}`; // Ejemplo: "APROBACIÓN_ANULADA"
+    // 1. Obtener los datos de la sesión actual desde localStorage
+    const sesionString = localStorage.getItem('sesion_activa');
+    if (!sesionString) {
+        alert("Error: No se encontró una sesión activa.");
+        return;
+    }
 
-    // Ventana emergente de confirmación nativa
-    const confirmacion = confirm(`¿Estás seguro de que deseas ${accionTexto} esta orden?\n\nLa orden pasará a estado de APROBACIÓN y un Administrador deberá validar esta acción.`);
+    const usuarioActual = JSON.parse(sesionString);
+    const privilegioId = usuarioActual.privilegio_id;
+
+    // 2. Validamos si es Administrador basándonos en tu tabla "privilegios" (id = 1)
+    const esAdmin = (privilegioId === 1);
+
+    // 3. Textos dinámicos
+    const accionTexto = tipoAccion === 'COMPLETADA' ? 'dar por COMPLETADA' : 'ANULAR';
+    
+    // 4. Mensaje de confirmación según el privilegio
+    const mensajeConfirmacion = esAdmin 
+        ? `🔐 Como Administrador: ¿Estás seguro de que deseas ${accionTexto} esta orden definitivamente? Esta acción será inmediata.`
+        : `¿Estás seguro de que deseas ${accionTexto} esta orden?\n\nPasará a estado de APROBACIÓN y un Administrador deberá validarla.`;
+
+    // 5. Ventana de confirmación
+    const confirmacion = confirm(mensajeConfirmacion);
 
     if (confirmacion) {
         try {
-            // Aquí haces el Update a tu tabla de Supabase. Algo como esto:
-            /*
-            const { data, error } = await supabase
+            // 6. Definimos qué estado vamos a guardar en la BD
+            const estadoAGuardar = esAdmin ? tipoAccion : `APROBACIÓN_${tipoAccion}`;
+
+            // 7. Actualizamos la tabla ordenes en Supabase
+            const { data, error } = await _supabase
                 .from('ordenes')
-                .update({ estado_aprobacion: estadoAprobacion }) // Asumiendo que agregas esta columna a tu DB
+                .update({ estado: estadoAGuardar }) 
                 .eq('id', idOrdenActualEdicion);
 
             if (error) throw error;
-            */
 
-            alert(`✅ Solicitud enviada con éxito. La orden se encuentra pendiente de aprobación para ser ${accionTexto}.`);
+            // 8. Mensajes de éxito
+            if (esAdmin) {
+                alert(`✅ Éxito: La orden ha sido ${tipoAccion === 'COMPLETADA' ? 'Completada' : 'Anulada'} correctamente.`);
+            } else {
+                alert(`✅ Solicitud enviada. La orden está pendiente de aprobación para ser ${accionTexto}.`);
+            }
             
-            // Volver al dashboard
-            mostrarVista('vista-dashboard'); // Asumiendo que esta es tu función para volver
+            // 9. Volver al dashboard (cambiarVista ya invoca cargarDashboard por defecto)
+            cambiarVista('dashboard'); 
             
         } catch (error) {
-            console.error("Error al solicitar aprobación:", error);
-            alert("Hubo un error al procesar la solicitud.");
+            console.error("Error al procesar la acción:", error);
+            alert("Hubo un error al procesar la solicitud en la base de datos.");
         }
     }
 }
