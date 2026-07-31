@@ -688,17 +688,23 @@ async function guardarOrdenCompra() {
             if (montoPagadoFinal <= 0) return alert('⚠️ Por favor, ingresa un monto de anticipo válido mayor a 0.');
         }
 
-        // 2. Validaciones obligatorias
-        if (!tipoCodigoId || !numeroOc) return alert('⚠️ Por favor, haz clic en OC Nº y selecciona un código.');
+        // ==========================================
+        // 2. VALIDACIONES (MODIFICADO PARA EDICIÓN)
+        // ==========================================
+        // Solo exigimos un nuevo tipo de código si es una Orden NUEVA
+        if (!idOrdenActualEdicion && (!tipoCodigoId || !numeroOc)) {
+            return alert('⚠️ Por favor, haz clic en OC Nº y selecciona un código.');
+        }
+        
         if (!proveedor) return alert('⚠️ Por favor, ingresa el nombre del proveedor.');
         if (!fechaSolicitud) return alert('⚠️ Por favor, selecciona la fecha de solicitud.');
         if (!formaPago) return alert('⚠️ Por favor, selecciona una forma de pago.');
         if (total <= 0) return alert('⚠️ El total debe ser mayor a 0.');
 
-        // 3. (Omitido temporalmente: Verificación de usuario)
-        
-        // 4. Inserción en la tabla principal (ordenes)
-        const nuevaOrden = {
+        // ==========================================
+        // 3. GUARDADO: PRINCIPAL (INSERT O UPDATE)
+        // ==========================================
+        const datosOrden = {
             numero_oc: numeroOc,
             proveedor_nombre: proveedor,
             contacto_nombre: contacto,
@@ -712,25 +718,44 @@ async function guardarOrdenCompra() {
             descuento_porcentaje: descuento,
             monto_total: total,
             observacion: observacion,
-            estado: 'PENDIENTE', 
-            monto_pagado: montoPagadoFinal, // El trigger lo sobreescribirá de todos modos, pero es buena práctica enviarlo
+            // Solo establecemos el estado PENDIENTE si es nueva. Si es edición, mantenemos el que tiene.
+            ...( !idOrdenActualEdicion && { estado: 'PENDIENTE' } ),
+            monto_pagado: montoPagadoFinal, 
             fecha_vencimiento: fechaVencimientoFinal,
             porcentaje_anticipo: porcentajeAnticipoFinal
         };
 
-        const { data: ordenInsertada, error: errorOrden } = await _supabase
-            .from('ordenes')
-            .insert([nuevaOrden])
-            .select(); 
+        let idOrdenGenerada = idOrdenActualEdicion;
 
-        if (errorOrden) throw new Error('Error al guardar la orden: ' + errorOrden.message);
-        
-        const idOrdenGenerada = ordenInsertada[0].id;
+        if (idOrdenActualEdicion) {
+            // A. MODO ACTUALIZACIÓN
+            const { error: errorUpdate } = await _supabase
+                .from('ordenes')
+                .update(datosOrden)
+                .eq('id', idOrdenActualEdicion);
+            if (errorUpdate) throw new Error('Error al actualizar: ' + errorUpdate.message);
+        } else {
+            // B. MODO CREACIÓN
+            const { data: ordenInsertada, error: errorOrden } = await _supabase
+                .from('ordenes')
+                .insert([datosOrden])
+                .select(); 
+            if (errorOrden) throw new Error('Error al guardar: ' + errorOrden.message);
+            idOrdenGenerada = ordenInsertada[0].id;
+        }
 
-        // 5. Inserción de los Ítems (Detalle)
+        // ==========================================
+        // 4. GUARDADO: ÍTEMS Y PAGOS
+        // ==========================================
+        // Truco de edición: Borramos los ítems y pagos viejos de esta orden y guardamos exactamente lo que hay en pantalla
+        if (idOrdenActualEdicion) {
+            await _supabase.from('items_orden').delete().eq('orden_id', idOrdenGenerada);
+            await _supabase.from('historial_pagos').delete().eq('orden_id', idOrdenGenerada);
+        }
+
+        // --- Guardar Ítems ---
         const filas = document.querySelectorAll('#items-body tr');
         const itemsAInsertar = [];
-
         filas.forEach((tr, index) => {
             const cant = parseFloat(tr.querySelector('.item-cant').value) || 0;
             const unidad = tr.querySelector('.item-unidad').value;
@@ -752,17 +777,12 @@ async function guardarOrdenCompra() {
         if (itemsAInsertar.length > 0) {
             const { error: errorItems } = await _supabase.from('items_orden').insert(itemsAInsertar);
             if (errorItems) throw new Error('Falló el guardado de ítems: ' + errorItems.message);
-        } else {
-            alert('⚠️ La orden se guardó sin productos en el detalle.');
         }
 
-        // =================================================================
-        // 5.5 NUEVO: INSERCIÓN DE PAGOS DESDE LA TABLA BORRADOR
-        // =================================================================
+        // --- Guardar Pagos ---
         if (formaPago === 'ANTICIPO' || formaPago === 'CREDITO') {
             const filasPagos = document.querySelectorAll('.fila-pago-borrador');
             const pagosAInsertar = [];
-
             filasPagos.forEach(tr => {
                 pagosAInsertar.push({
                     orden_id: idOrdenGenerada,
@@ -773,41 +793,30 @@ async function guardarOrdenCompra() {
             });
 
             if (pagosAInsertar.length > 0) {
-                const { error: errorPagos } = await _supabase
-                    .from('historial_pagos')
-                    .insert(pagosAInsertar);
-
-                if (errorPagos) {
-                    console.error("Error al registrar los pagos:", errorPagos);
-                    alert("⚠️ La orden y los ítems se crearon, pero hubo un error guardando el historial de pagos.");
-                }
+                const { error: errorPagos } = await _supabase.from('historial_pagos').insert(pagosAInsertar);
+                if (errorPagos) console.error("Error al registrar los pagos:", errorPagos);
             }
         } else if (formaPago === 'CONTADO') {
-            // Si es al contado, mantenemos la lógica de crear un recibo automático por el total
-            const { error: errorPagoContado } = await _supabase
-                .from('historial_pagos')
-                .insert([{
-                    orden_id: idOrdenGenerada,
-                    numero_recibo: 'PAGO-CONTADO',
-                    fecha_pago: fechaSolicitud,
-                    monto: total
-                }]);
+            await _supabase.from('historial_pagos').insert([{
+                orden_id: idOrdenGenerada,
+                numero_recibo: 'PAGO-CONTADO',
+                fecha_pago: fechaSolicitud,
+                monto: total
+            }]);
         }
 
-        // 6. ACTUALIZAR EL CORRELATIVO DEL CÓDIGO
-        const nuevoCorrelativo = parseInt(correlativoActual) + 1;
-        const { error: errorUpdateCodigo } = await _supabase
-            .from('tipos_codificacion')
-            .update({ correlativo: nuevoCorrelativo })
-            .eq('id', tipoCodigoId);
-
-        if (errorUpdateCodigo) {
-            console.error("Error actualizando correlativo:", errorUpdateCodigo);
-            alert("⚠️ Error al actualizar el número correlativo.");
+        // ==========================================
+        // 5. ACTUALIZAR CORRELATIVO (SOLO SI ES NUEVA)
+        // ==========================================
+        if (!idOrdenActualEdicion && tipoCodigoId) {
+            const nuevoCorrelativo = parseInt(correlativoActual) + 1;
+            await _supabase.from('tipos_codificacion').update({ correlativo: nuevoCorrelativo }).eq('id', tipoCodigoId);
         }
 
-        // 7. Éxito y limpieza
-        alert('✅ ¡Orden de Compra registrada con éxito!');
+        // ==========================================
+        // 6. ÉXITO Y LIMPIEZA
+        // ==========================================
+        alert(idOrdenActualEdicion ? '✅ ¡Orden actualizada con éxito!' : '✅ ¡Orden de Compra registrada con éxito!');
         
         // Limpiar inputs de texto
         const idsALimpiar = ['oc-num', 'tipo_codigo_id', 'codigo_prefijo', 'correlativo_actual', 
@@ -816,7 +825,6 @@ async function guardarOrdenCompra() {
         idsALimpiar.forEach(id => {
             if (document.getElementById(id)) document.getElementById(id).value = '';
         });
-        
         document.getElementById('descuento-pct').value = '0';
         
         // Limpiar select de pago
@@ -828,6 +836,14 @@ async function guardarOrdenCompra() {
         document.getElementById('items-body').innerHTML = '';
         for (let i = 0; i < 1; i++) agregarFilaItem();
         calcularTotales(); 
+
+        // Salir del modo edición
+        idOrdenActualEdicion = null; 
+        document.getElementById('botones-edicion-orden').style.display = 'none';
+        document.getElementById('btn-guardar-orden').innerHTML = '<i class="ri-save-line"></i> Guardar Orden de Compra';
+
+        // Volver al Dashboard automáticamente
+        cambiarVista('dashboard');
 
     } catch (error) {
         console.error(error);
