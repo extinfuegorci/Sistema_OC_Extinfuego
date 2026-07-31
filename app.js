@@ -1135,16 +1135,19 @@ async function cargarDashboard() {
             return;
         }
 
+        // Obtener la fecha de hoy a las 00:00:00 para comparar vencimientos justos
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
         // 4. Recorrer cada orden
         ordenes.forEach(orden => {
-            // MANEJO SEGURO: Convertimos null a 0 para que no colapse el código
             const monto = parseFloat(orden.monto_total) || 0;
             const pagado = parseFloat(orden.monto_pagado) || 0;
             const estadoActual = orden.estado || 'PENDIENTE';
 
             totalGastado += monto;
             
-            // Calculamos métricas con los datos reales
+            // Calculamos métricas globales
             if (estadoActual === 'COMPLETADA' || estadoActual === 'APROBADO' || pagado >= monto) {
                 totalPagado += pagado;
             }
@@ -1152,23 +1155,39 @@ async function cargarDashboard() {
                 totalPendiente += (monto - pagado > 0 ? monto - pagado : 0);
             }
 
-            // Formatear fechas (Añadimos T00:00:00 para evitar que el cambio de zona horaria reste un día)
+            // Formatear fechas de solicitud y entrega
             const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud + 'T00:00:00').toLocaleDateString('es-ES') : '-';
             const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega + 'T00:00:00').toLocaleDateString('es-ES') : '-';
 
-            // --- DISEÑO DE BADGES ---
-            let badgeEntrega = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">${estadoActual}</span>`;
-            if (estadoActual === 'COMPLETADA') badgeEntrega = `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">COMPLETADA</span>`;
-            if (estadoActual === 'ANULADA') badgeEntrega = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ANULADA</span>`;
-            if (estadoActual.includes('APROBACIÓN')) badgeEntrega = `<span style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">EN REVISIÓN</span>`;
+            // ---------------------------------------------------------
+            // LÓGICA 1: ESTADO DE ENTREGA
+            // ---------------------------------------------------------
+            let badgeEntrega = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PENDIENTE</span>`; // AMARILLO por defecto
+            
+            if (estadoActual === 'COMPLETADA') {
+                badgeEntrega = `<span style="background-color: #dbeafe; color: #1e3a8a; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ENTREGADA</span>`; // AZUL
+            } else if (estadoActual === 'ANULADA') {
+                badgeEntrega = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ANULADA</span>`; // ROJO
+            }
 
-            // Lógica de Pago
-            const estaPagado = (pagado >= monto && monto > 0);
-            const badgePago = estaPagado 
-                ? `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PAGADO</span>`
-                : `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PEND. DE PAGO</span>`;
+            // ---------------------------------------------------------
+            // LÓGICA 2: ESTADO DE PAGO
+            // ---------------------------------------------------------
+            let badgePago = '';
+            let fechaVenc = orden.fecha_vencimiento ? new Date(orden.fecha_vencimiento + 'T00:00:00') : null;
 
-            // Construir la fila asegurando la columna CLIENTE (facturar_a)
+            if (pagado >= monto && monto > 0) {
+                // Pagado completamente (AZUL)
+                badgePago = `<span style="background-color: #dbeafe; color: #1e3a8a; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PAGADO</span>`;
+            } else if (fechaVenc && hoy > fechaVenc) {
+                // No está pagado completo y ya pasó la fecha de vencimiento (ROJO)
+                badgePago = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">VENCIDO</span>`;
+            } else {
+                // No está pagado completo y aún está en fecha (AMARILLO)
+                badgePago = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PENDIENTE</span>`;
+            }
+
+            // Construir la fila con los nuevos badges
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="padding: 12px 16px; color: #334155; font-weight: 500;">${orden.numero_oc || '-'}</td>
@@ -1186,7 +1205,7 @@ async function cargarDashboard() {
             if (tbody) tbody.appendChild(tr);
         });
 
-        // 5. Actualizar tarjetas
+        // 5. Actualizar tarjetas superiores
         const metricGastado = document.getElementById('metric-total-gastado');
         const metricPagado = document.getElementById('metric-pagado');
         const metricPendiente = document.getElementById('metric-pendiente');
@@ -1200,7 +1219,6 @@ async function cargarDashboard() {
         alert("Ocurrió un problema al cargar los reportes. Revisa la consola.");
     }
 }
-
 // Mostrar/Ocultar el módulo según la forma de pago
 document.getElementById('forma-pago').addEventListener('change', function() {
     const moduloPagos = document.getElementById('modulo-pagos');
