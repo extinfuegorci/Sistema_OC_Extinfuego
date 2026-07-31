@@ -1203,56 +1203,43 @@ document.getElementById('forma-pago').addEventListener('change', function() {
     }
 });
 
-// Agregar pago a la tabla HTML (Borrador)
+// Agregar pago a la tabla HTML (Borrador - Estilo Excel)
 document.getElementById('btn-agregar-pago-ui').addEventListener('click', function() {
-    const recibo = document.getElementById('nuevo-recibo').value;
+    const recibo = document.getElementById('nuevo-recibo').value.toUpperCase();
     const fecha = document.getElementById('nuevo-pago-fecha').value;
     const monto = parseFloat(document.getElementById('nuevo-pago-monto').value);
 
     if (!recibo || !fecha || !monto || monto <= 0) {
-        return alert("⚠️ Por favor, ingresa un número de recibo, fecha y un monto válido mayor a 0.");
+        return alert("⚠️ Por favor, ingresa un número de recibo, fecha y un monto válido.");
     }
 
     const tbody = document.getElementById('tabla-borrador-pagos');
     
-    // Quitar el mensaje de "Sin pagos" si existe
+    // Quitar el mensaje de "Sin pagos"
     const filaVacia = document.getElementById('fila-sin-pagos');
     if (filaVacia) filaVacia.remove();
 
-    // Crear la nueva fila guardando los datos en atributos "data-" para leerlos al guardar
+    // Crear fila con estilos tipo Excel
     const tr = document.createElement('tr');
     tr.className = 'fila-pago-borrador';
     tr.dataset.recibo = recibo;
     tr.dataset.fecha = fecha;
     tr.dataset.monto = monto;
+    tr.style.borderBottom = "1px solid #cbd5e1";
 
     tr.innerHTML = `
-        <td>${recibo}</td>
-        <td>${fecha}</td>
-        <td>${monto.toFixed(2)}</td>
-        <td class="text-center">
-            <button type="button" class="btn btn-danger btn-sm btn-eliminar-pago-ui">
-                <i class="fas fa-trash"></i>
+        <td style="padding: 6px; border-right: 1px solid #cbd5e1;">${recibo}</td>
+        <td style="padding: 6px; border-right: 1px solid #cbd5e1;">${fecha}</td>
+        <td style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: bold;">${monto.toFixed(2)}</td>
+        <td style="padding: 6px;">
+            <button type="button" class="btn-eliminar-pago-ui" style="background: none; border: none; color: #ef4444; cursor: pointer;" title="Eliminar">
+                <i class="ri-delete-bin-line"></i>
             </button>
         </td>
     `;
     tbody.appendChild(tr);
 
-    // Limpiar los inputs para el siguiente pago
+    // Limpiar inputs
     document.getElementById('nuevo-recibo').value = '';
     document.getElementById('nuevo-pago-monto').value = '';
-});
-
-// Eliminar un pago de la tabla borrador
-document.getElementById('tabla-borrador-pagos').addEventListener('click', function(e) {
-    if (e.target.closest('.btn-eliminar-pago-ui')) {
-        e.target.closest('tr').remove();
-        // Si nos quedamos sin pagos, volver a mostrar el mensaje vacío
-        if (this.children.length === 0) {
-            this.innerHTML = `
-                <tr id="fila-sin-pagos">
-                    <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para esta orden.</td>
-                </tr>`;
-        }
-    }
 });
