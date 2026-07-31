@@ -449,6 +449,48 @@
                             <i class="ri-save-line"></i> Guardar Orden de Compra
                         </button>
                     </div>
+                    <!-- Módulo de Pagos (Se muestra al elegir Crédito o Anticipo) -->
+                    <div id="modulo-pagos" class="mt-4 p-4" style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <h5 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Registro de Pagos / Anticipos</h5>
+                        
+                        <!-- Formulario para agregar un pago a la tabla -->
+                        <div class="row mt-3">
+                            <div class="col-md-4 form-group">
+                                <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
+                                <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label for="nuevo-pago-fecha">Fecha</label>
+                                <input type="date" id="nuevo-pago-fecha" class="form-control">
+                            </div>
+                            <div class="col-md-3 form-group">
+                                <label for="nuevo-pago-monto">Monto (Bs.)</label>
+                                <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
+                            </div>
+                            <div class="col-md-2 form-group d-flex align-items-end">
+                                <button type="button" class="btn btn-secondary w-100" id="btn-agregar-pago-ui">
+                                    <i class="fas fa-plus"></i> Añadir a tabla
+                                </button>
+                            </div>
+                        </div>
+                    
+                        <!-- Tabla borrador de pagos -->
+                        <table class="table table-sm table-bordered mt-3" style="background: white;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nº de Recibo</th>
+                                    <th>Fecha</th>
+                                    <th>Monto (Bs.)</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-borrador-pagos">
+                                <tr id="fila-sin-pagos">
+                                    <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para esta orden.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
