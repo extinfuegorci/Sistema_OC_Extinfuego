@@ -1069,6 +1069,12 @@ function calcularTotales() {
     
     if (lblSubtotal) lblSubtotal.innerText = subtotalGeneral.toFixed(2);
     if (lblTotal) lblTotal.innerText = (subtotalGeneral - montoDescuento).toFixed(2);
+
+    // NUEVO: Sincronizar el total con el módulo de pagos
+    if (typeof actualizarSaldosPagos === 'function') {
+        actualizarSaldosPagos();
+    }
+    
 }
 // ==========================================
 // CERRAR MODALES CON ESC O CLIC AFUERA
@@ -1205,21 +1211,26 @@ document.getElementById('forma-pago').addEventListener('change', function() {
 
 // Agregar pago a la tabla HTML (Borrador - Estilo Excel)
 document.getElementById('btn-agregar-pago-ui').addEventListener('click', function() {
-    const recibo = document.getElementById('nuevo-recibo').value.toUpperCase();
+    const recibo = document.getElementById('nuevo-recibo').value; // Ahora lee el autogenerado
     const fecha = document.getElementById('nuevo-pago-fecha').value;
     const monto = parseFloat(document.getElementById('nuevo-pago-monto').value);
+    const saldoActual = parseFloat(document.getElementById('pago-saldo-pendiente').innerText) || 0;
 
-    if (!recibo || !fecha || !monto || monto <= 0) {
-        return alert("⚠️ Por favor, ingresa un número de recibo, fecha y un monto válido.");
+    if (!fecha || !monto || monto <= 0) {
+        return alert("⚠️ Por favor, ingresa una fecha y un monto válido.");
+    }
+    
+    // Pequeña validación por si el pago supera el saldo pendiente
+    if (monto > saldoActual && saldoActual > 0) {
+        if (!confirm(`⚠️ El monto a pagar (Bs. ${monto}) es mayor al saldo pendiente (Bs. ${saldoActual}). ¿Deseas agregarlo de todos modos?`)) {
+            return;
+        }
     }
 
     const tbody = document.getElementById('tabla-borrador-pagos');
-    
-    // Quitar el mensaje de "Sin pagos"
     const filaVacia = document.getElementById('fila-sin-pagos');
     if (filaVacia) filaVacia.remove();
 
-    // Crear fila con estilos tipo Excel
     const tr = document.createElement('tr');
     tr.className = 'fila-pago-borrador';
     tr.dataset.recibo = recibo;
@@ -1239,7 +1250,65 @@ document.getElementById('btn-agregar-pago-ui').addEventListener('click', functio
     `;
     tbody.appendChild(tr);
 
-    // Limpiar inputs
-    document.getElementById('nuevo-recibo').value = '';
+    // Limpiamos solo el monto (dejamos la fecha por si quiere registrar varios pagos el mismo día)
     document.getElementById('nuevo-pago-monto').value = '';
+    
+    // ¡Recalculamos los saldos y autoincrementamos!
+    actualizarSaldosPagos();
 });
+
+// Eliminar un pago de la tabla borrador
+document.getElementById('tabla-borrador-pagos').addEventListener('click', function(e) {
+    if (e.target.closest('.btn-eliminar-pago-ui')) {
+        e.target.closest('tr').remove();
+        
+        // Si nos quedamos sin pagos, restauramos el mensaje vacío
+        if (this.children.length === 0) {
+            this.innerHTML = `
+                <tr id="fila-sin-pagos">
+                    <td colspan="4" style="padding: 10px; color: #94a3b8; font-style: italic;">Sin pagos registrados.</td>
+                </tr>`;
+        }
+        
+        // Re-enumerar las filas existentes para que el orden siga siendo 1, 2, 3...
+        const filasRestantes = document.querySelectorAll('.fila-pago-borrador');
+        filasRestantes.forEach((fila, index) => {
+            const nuevoNumero = index + 1;
+            fila.dataset.recibo = nuevoNumero; 
+            fila.children[0].innerText = nuevoNumero; 
+        });
+
+        // Recalcular saldos
+        actualizarSaldosPagos();
+    }
+});
+
+function actualizarSaldosPagos() {
+    // 1. Obtener Total de la Orden
+    const totalOrden = parseFloat(document.getElementById('lbl-total').innerText) || 0;
+    
+    // 2. Sumar todos los pagos que estén en el borrador
+    let totalPagado = 0;
+    const filasPagos = document.querySelectorAll('.fila-pago-borrador');
+    filasPagos.forEach(fila => {
+        totalPagado += parseFloat(fila.dataset.monto) || 0;
+    });
+    
+    // 3. Calcular el saldo
+    let saldo = totalOrden - totalPagado;
+    
+    // 4. Escribir los valores en la tabla de pagos
+    const lblTotalPagar = document.getElementById('pago-total-pagar');
+    const lblTotalPagado = document.getElementById('pago-total-pagado');
+    const lblSaldo = document.getElementById('pago-saldo-pendiente');
+    
+    if (lblTotalPagar) lblTotalPagar.innerText = totalOrden.toFixed(2);
+    if (lblTotalPagado) lblTotalPagado.innerText = totalPagado.toFixed(2);
+    if (lblSaldo) lblSaldo.innerText = saldo.toFixed(2);
+    
+    // 5. Autoincrementar el número del próximo pago (1, 2, 3...)
+    const inputRecibo = document.getElementById('nuevo-recibo');
+    if (inputRecibo) {
+        inputRecibo.value = filasPagos.length + 1; 
+    }
+}
