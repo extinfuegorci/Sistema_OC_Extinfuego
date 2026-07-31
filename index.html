@@ -414,10 +414,11 @@
                     <button class="btn btn-secondary mt-10" onclick="agregarFilaItem()"><i class="ri-add-line"></i>
                         Agregar Ítem</button>
 
-                    <div class="totals-section">
+                    <div class="totals-section"
+                        style="display: flex; gap: 20px; align-items: flex-start; margin-top: 20px;">
+
                         <!-- Lado Izquierdo: Observaciones + Tabla Excel de Pagos -->
-                        <div class="obs-box"
-                            style="display: flex; flex-direction: column; gap: 15px; flex: 1; margin-right: 20px;">
+                        <div class="obs-box" style="display: flex; flex-direction: column; gap: 15px; flex: 1;">
                             <div>
                                 <label style="font-weight: bold; color: #475569;">Observaciones:</label>
                                 <textarea id="observacion" rows="3" placeholder="Escriba alguna observación..."
@@ -484,7 +485,7 @@
                         </div>
 
                         <!-- Lado Derecho: Totales -->
-                        <div class="summary-box">
+                        <div class="summary-box" style="width: 300px;">
                             <div class="summary-row">
                                 <span>SUB-TOTAL:</span>
                                 <strong id="lbl-subtotal">0.00</strong>
@@ -499,167 +500,115 @@
                                 <strong id="lbl-total">0.00</strong>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- Cierra totals-section -->
 
-                    <div class="form-actions mt-15" style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                    <div class="form-actions mt-15" style="display: flex; justify-content: flex-start; margin-top: 20px;">
                         <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
                             <i class="ri-save-line"></i> Guardar Orden de Compra
                         </button>
                     </div>
+
+                </div> <!-- Cierra form-container -->
+            </section> <!-- Cierra vista-nueva-orden -->
+
+            <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
+            <section id="vista-clientes" class="vista">
+                <div class="topbar-actions mb-15">
+                    <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search"
+                        style="width: 300px;">
+                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
+                        <i class="ri-add-line"></i> Registrar Cliente / Empresa
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>NIT / CI</th>
+                                <th>RAZÓN SOCIAL / EMPRESA</th>
+                                <th>CONTACTO PRINCIPAL</th>
+                                <th>TELÉFONO</th>
+                                <th>DIRECCIÓN</th>
+                                <th>ESTADO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-clientes-body">
+                            <!-- El contenido se cargará dinámicamente desde Supabase -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
-            <div class="form-actions">
-                <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
-                    <i class="ri-save-line"></i> Guardar Orden de Compra
-                </button>
-            </div>
-            <!-- Módulo de Pagos (Se muestra al elegir Crédito o Anticipo) -->
-            <div id="modulo-pagos" class="mt-4 p-4"
-                style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
-                <h5 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Registro de
-                    Pagos / Anticipos</h5>
-
-                <!-- Formulario para agregar un pago a la tabla -->
-                <div class="row mt-3">
-                    <div class="col-md-4 form-group">
-                        <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
-                        <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label for="nuevo-pago-fecha">Fecha</label>
-                        <input type="date" id="nuevo-pago-fecha" class="form-control">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label for="nuevo-pago-monto">Monto (Bs.)</label>
-                        <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
-                    </div>
-                    <div class="col-md-2 form-group d-flex align-items-end">
-                        <button type="button" class="btn btn-secondary w-100" id="btn-agregar-pago-ui">
-                            <i class="fas fa-plus"></i> Añadir a tabla
-                        </button>
-                    </div>
+            <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
+            <section id="vista-usuarios" class="vista">
+                <div class="topbar-actions mb-15">
+                    <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search"
+                        style="width: 300px;">
+                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
+                        <i class="ri-user-add-line"></i> Crear Nuevo Usuario
+                    </button>
                 </div>
 
-                <!-- Tabla borrador de pagos -->
-                <table class="table table-sm table-bordered mt-3" style="background: white;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Nº de Recibo</th>
-                            <th>Fecha</th>
-                            <th>Monto (Bs.)</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-borrador-pagos">
-                        <tr id="fila-sin-pagos">
-                            <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para
-                                esta orden.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-    </div>
-    </section>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CI</th>
+                                <th>NOMBRE COMPLETO</th>
+                                <th>USUARIO</th>
+                                <th>PRIVILEGIO / ROL</th>
+                                <th>ESTADO</th>
+                                <th>FECHA REGISTRO</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios-body">
+                            <!-- Datos de usuarios -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-    <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
-    <section id="vista-clientes" class="vista">
-        <div class="topbar-actions mb-15">
-            <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search"
-                style="width: 300px;">
-            <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
-                <i class="ri-add-line"></i> Registrar Cliente / Empresa
-            </button>
-        </div>
+            <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
+            <section id="vista-bitacora" class="vista">
+                <div class="filter-box mb-15">
+                    <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search"
+                        style="flex: 1;">
+                    <select class="input-select">
+                        <option value="">Todos los Módulos</option>
+                        <option value="USUARIOS">Usuarios</option>
+                        <option value="CLIENTES">Clientes</option>
+                        <option value="ORDENES">Órdenes de Compra</option>
+                    </select>
+                    <select class="input-select">
+                        <option value="">Todas las Gestiones</option>
+                        <option value="CREAR">Crear</option>
+                        <option value="EDITAR">Editar</option>
+                        <option value="INACTIVAR">Inactivar</option>
+                    </select>
+                </div>
 
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>NIT / CI</th>
-                        <th>RAZÓN SOCIAL / EMPRESA</th>
-                        <th>CONTACTO PRINCIPAL</th>
-                        <th>TELÉFONO</th>
-                        <th>DIRECCIÓN</th>
-                        <th>ESTADO</th>
-                        <th>ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-clientes-body">
-                    <!-- El contenido se cargará dinámicamente desde Supabase -->
-                </tbody>
-            </table>
-        </div>
-    </section>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>FECHA Y HORA</th>
+                                <th>USUARIO</th>
+                                <th>MÓDULO</th>
+                                <th>GESTIÓN / ACCIÓN</th>
+                                <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-bitacora-body">
+                            <!-- Datos bitácora -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-    <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
-    <section id="vista-usuarios" class="vista">
-        <div class="topbar-actions mb-15">
-            <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search"
-                style="width: 300px;">
-            <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
-                <i class="ri-user-add-line"></i> Crear Nuevo Usuario
-            </button>
-        </div>
-
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>CI</th>
-                        <th>NOMBRE COMPLETO</th>
-                        <th>USUARIO</th>
-                        <th>PRIVILEGIO / ROL</th>
-                        <th>ESTADO</th>
-                        <th>FECHA REGISTRO</th>
-                        <th>ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-usuarios-body">
-                    <!-- Datos de usuarios -->
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
-    <section id="vista-bitacora" class="vista">
-        <div class="filter-box mb-15">
-            <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search"
-                style="flex: 1;">
-            <select class="input-select">
-                <option value="">Todos los Módulos</option>
-                <option value="USUARIOS">Usuarios</option>
-                <option value="CLIENTES">Clientes</option>
-                <option value="ORDENES">Órdenes de Compra</option>
-            </select>
-            <select class="input-select">
-                <option value="">Todas las Gestiones</option>
-                <option value="CREAR">Crear</option>
-                <option value="EDITAR">Editar</option>
-                <option value="INACTIVAR">Inactivar</option>
-            </select>
-        </div>
-
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>FECHA Y HORA</th>
-                        <th>USUARIO</th>
-                        <th>MÓDULO</th>
-                        <th>GESTIÓN / ACCIÓN</th>
-                        <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla-bitacora-body">
-                    <!-- Datos bitácora -->
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    </main>
+        </main>
     </div> <!-- Cierre de #app-layout -->
 
     <!-- ==================== MODALES ==================== -->
