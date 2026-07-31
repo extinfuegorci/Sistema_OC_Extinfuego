@@ -1113,9 +1113,9 @@ async function cargarDashboard() {
         const tbody = document.getElementById('tabla-dashboard-body');
         
         // 1. Mostrar mensaje de carga
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Cargando información... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 20px;">Cargando información... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
 
-        // 2. Consultar a Supabase (Solo necesitamos la tabla 'ordenes' porque ahí ya guardas proveedor_nombre y empresa_solicitante)
+        // 2. Consultar a Supabase
         const { data: ordenes, error } = await _supabase
             .from('ordenes')
             .select('*')
@@ -1123,7 +1123,7 @@ async function cargarDashboard() {
 
         if (error) throw error;
 
-        // 3. Variables para las métricas
+        // 3. Variables para las métricas superiores
         let totalGastado = 0;
         let totalPagado = 0;
         let totalPendiente = 0;
@@ -1131,46 +1131,50 @@ async function cargarDashboard() {
         if (tbody) tbody.innerHTML = '';
 
         if (ordenes.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No hay órdenes registradas aún.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;">No hay órdenes registradas aún.</td></tr>';
+            return;
         }
 
-        // 4. Recorrer cada orden
+        // 4. Recorrer cada orden y construir la fila
         ordenes.forEach(orden => {
             const monto = parseFloat(orden.monto_total) || 0;
             totalGastado += monto;
             
-            // Evaluamos según el estado de la orden
-            if (orden.estado === 'APROBADO' || orden.estado === 'PAGADO') {
+            // Calculamos métricas
+            if (orden.estado === 'COMPLETADA' || orden.estado === 'APROBADO') {
                 totalPagado += monto;
-            } else if (orden.estado === 'PENDIENTE' || orden.estado === 'EMITIDO') {
+            } else if (orden.estado !== 'ANULADA') {
                 totalPendiente += monto;
             }
 
-            // Construir la fila
+            // Formatear fechas para que se vean bonitas
+            const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud).toLocaleDateString('es-ES') : '-';
+            const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega).toLocaleDateString('es-ES') : '-';
+
+            // --- DISEÑO DE BADGES (Pasteles suaves) ---
+            // Badge para Estado General (Entrega/Proceso)
+            let badgeEntrega = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">${orden.estado || 'PENDIENTE'}</span>`;
+            if (orden.estado === 'COMPLETADA') badgeEntrega = `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">COMPLETADA</span>`;
+            if (orden.estado === 'ANULADA') badgeEntrega = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ANULADA</span>`;
+            if (orden.estado && orden.estado.includes('APROBACIÓN')) badgeEntrega = `<span style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">EN REVISIÓN</span>`;
+
+            // Badge para Pagos (Lógica básica: si lo pagado es mayor o igual al total)
+            const estaPagado = (parseFloat(orden.monto_pagado) >= monto && monto > 0);
+            const badgePago = estaPagado 
+                ? `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PAGADO</span>`
+                : `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PENDIENTE</span>`;
+
+            // Construir la fila con EXACTAMENTE 7 columnas
             const tr = document.createElement('tr');
-            
-            let colorEstado = '#f59e0b'; // Naranja para pendiente
-            if (orden.estado === 'APROBADO') colorEstado = '#10b981'; // Verde
-            if (orden.estado === 'SOLICITUD_ANULACION') colorEstado = '#ef4444'; // Rojo
-
-            // Formatear fechas (Manejo de nulos por si no hay fecha de entrega)
-            const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud).toLocaleDateString() : '-';
-            const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega).toLocaleDateString() : '-';
-
             tr.innerHTML = `
-                <td><strong>${orden.numero_oc || '-'}</strong></td>
-                <td>${orden.proveedor_nombre || '-'}</td>
-                <td>${orden.empresa_solicitante || '-'}</td>
-                <td>${fechaIngreso}</td>
-                <td>${fechaEntrega}</td>
-                <td><strong>Bs. ${monto.toFixed(2)}</strong></td>
-                <td>
-                    <span style="background-color: ${colorEstado}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        ${orden.estado || 'PENDIENTE'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn-icon" onclick="console.log('Ver detalle ${orden.id}')" title="Ver Detalles">
+                <td style="padding: 12px 16px; color: #334155; font-weight: 500;">${orden.numero_oc || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569;">${orden.proveedor_nombre || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569;">${fechaIngreso}</td>
+                <td style="padding: 12px 16px; color: #475569;">${fechaEntrega}</td>
+                <td style="padding: 12px 16px;">${badgeEntrega}</td>
+                <td style="padding: 12px 16px;">${badgePago}</td>
+                <td style="padding: 12px 16px;">
+                    <button class="btn-icon" onclick="editarOrden('${orden.id}')" title="Ver Detalles" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 18px;">
                         <i class="ri-eye-line"></i>
                     </button>
                 </td>
