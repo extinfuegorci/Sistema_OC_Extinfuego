@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,8 +13,8 @@
     <!-- Librería Cliente de Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Archivo donde inicializas la llave y la lógica -->
-    
-    
+
+
     <style>
         /* Estilos básicos para la pantalla de Login */
         #login-section {
@@ -23,26 +24,35 @@
             align-items: center;
             background-color: #f4f7fe;
         }
+
         .login-card {
             background: white;
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 100%;
             max-width: 400px;
         }
-        .login-card h2 { margin-bottom: 20px; color: #1e293b; }
-        
+
+        .login-card h2 {
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
         /* Estilos generales de los inputs */
         .login-card input {
-            width: 100%; padding: 10px; margin-bottom: 15px;
-            border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
         }
-        
+
         /* Solo aplicar ancho 100% al botón principal del formulario */
-        .login-card > form > button[type="submit"] { 
-            width: 100%; 
+        .login-card>form>button[type="submit"] {
+            width: 100%;
         }
 
         /* --- NUEVO: Estilos para posicionar el ojo dentro del input --- */
@@ -51,10 +61,12 @@
             width: 100%;
             margin-bottom: 15px;
         }
-        
+
         .password-wrapper input {
-            margin-bottom: 0; /* Se quita para que el wrapper maneje el margen */
-            padding-right: 40px; /* Deja espacio para no escribir sobre el icono */
+            margin-bottom: 0;
+            /* Se quita para que el wrapper maneje el margen */
+            padding-right: 40px;
+            /* Deja espacio para no escribir sobre el icono */
         }
 
         .toggle-password {
@@ -70,7 +82,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: auto; /* Anula el 100% anterior */
+            width: auto;
+            /* Anula el 100% anterior */
         }
 
         .toggle-password:hover {
@@ -78,11 +91,17 @@
         }
 
         /* Ocultar el layout principal inicialmente */
-        #app-layout { display: none; height: 100vh; width: 100vw; display: flex; }
+        #app-layout {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+        }
     </style>
 </head>
+
 <body>
-<!-- ==================== PANTALLA DE CARGA / TRANSICIÓN ==================== -->
+    <!-- ==================== PANTALLA DE CARGA / TRANSICIÓN ==================== -->
     <div id="pantalla-carga" style="display: none;">
         <div class="logo-carga">
             <i class="ri-fire-fill"></i>
@@ -95,16 +114,20 @@
             <h2><i class="ri-fire-fill fire-icon" style="color: #ef4444;"></i> EXTINFUEGO</h2>
             <p style="margin-bottom: 20px; color: #64748b;">Ingrese sus credenciales</p>
             <form id="form-login" onsubmit="iniciarSesion(event)">
-                <input type="text" id="login-user" placeholder="Correo de ingreso (Login)" required autocomplete="username">
+                <input type="text" id="login-user" placeholder="Correo de ingreso (Login)" required
+                    autocomplete="username">
                 <div class="password-wrapper">
-                  <input type="password" id="input-password" placeholder="Contraseña" required>
-                  <button type="button" id="btn-ver-password" class="toggle-password" title="Mostrar/Ocultar contraseña">
-                    <!-- Icono SVG de ojo por defecto -->
-                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
+                    <input type="password" id="input-password" placeholder="Contraseña" required>
+                    <button type="button" id="btn-ver-password" class="toggle-password"
+                        title="Mostrar/Ocultar contraseña">
+                        <!-- Icono SVG de ojo por defecto -->
+                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg">Iniciar Sesión</button>
             </form>
@@ -123,7 +146,7 @@
                 <i class="ri-fire-fill fire-icon"></i>
                 <h2>EXTINFUEGO</h2>
             </div>
-            
+
             <nav class="menu">
                 <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
                     <i class="ri-dashboard-line"></i> Dashboard / Reportes
@@ -143,26 +166,28 @@
             </nav>
 
             <div class="user-profile-container">
-            <div class="user-info">
-                <i class="ri-user-3-line user-avatar"></i> <!-- Si usas otra librería de iconos, cámbialo -->
-                <div class="user-text">
-                    <span id="ui-user-name">moniktubbcita@gmail.com</span>
-                    <span id="ui-user-rol">Administrador</span>
+                <div class="user-info">
+                    <i class="ri-user-3-line user-avatar"></i> <!-- Si usas otra librería de iconos, cámbialo -->
+                    <div class="user-text">
+                        <span id="ui-user-name">moniktubbcita@gmail.com</span>
+                        <span id="ui-user-rol">Administrador</span>
+                    </div>
                 </div>
+
+                <!-- NUEVO BOTÓN: Redondo, visible y conectado a la función -->
+                <button class="btn-logout-redondo" onclick="cerrarSesion()" title="Cerrar Sesión">
+                    <!-- SVG de puerta de salida blanco -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path
+                            d="M5 22C4.44772 22 4 21.5523 4 21V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V6H18V4H6V20H18V18H20V21C20 21.5523 19.5523 22 19 22H5ZM18 16V13H11V11H18V8L23 12L18 16Z">
+                        </path>
+                    </svg>
+                </button>
             </div>
-    
-    <!-- NUEVO BOTÓN: Redondo, visible y conectado a la función -->
-    <button class="btn-logout-redondo" onclick="cerrarSesion()" title="Cerrar Sesión">
-        <!-- SVG de puerta de salida blanco -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M5 22C4.44772 22 4 21.5523 4 21V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V6H18V4H6V20H18V18H20V21C20 21.5523 19.5523 22 19 22H5ZM18 16V13H11V11H18V8L23 12L18 16Z"></path>
-        </svg>
-    </button>
-</div>
         </aside>
-<main class="main-content">
-        <!-- CONTENIDO PRINCIPAL -->
-        <!-- HEADER SUPERIOR -->
+        <main class="main-content">
+            <!-- CONTENIDO PRINCIPAL -->
+            <!-- HEADER SUPERIOR -->
             <header class="topbar">
                 <h1 id="titulo-seccion">Dashboard General</h1>
                 <div class="actions">
@@ -243,15 +268,10 @@
                             <input type="hidden" id="tipo_codigo_id" value="">
                             <input type="hidden" id="codigo_prefijo" value="">
                             <input type="hidden" id="correlativo_actual" value="">
-                            
+
                             <!-- Input visible, readonly para que solo se llene a través del modal -->
-                            <input 
-                                type="text" 
-                                id="oc-num" 
-                                readonly 
-                                placeholder="Seleccionar código..." 
-                                onclick="abrirModalCodigos()" 
-                                style="
+                            <input type="text" id="oc-num" readonly placeholder="Seleccionar código..."
+                                onclick="abrirModalCodigos()" style="
                                     cursor: pointer; 
                                     background-color: #fff;
                                     background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); 
@@ -259,42 +279,51 @@
                                     background-position: right 10px center; 
                                     background-size: 10px auto; 
                                     padding-right: 30px;
-                                "
-                            >
+                                ">
                         </div>
 
-            <!-- Nuevo Modal para Tipos de Codificación (Centrado) -->
-            <div id="modalCodigos" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-                <div class="modal-content" style="background-color: white; padding: 25px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                    <span class="close" onclick="cerrarModalCodigos()" style="position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer; color: #555;">&times;</span>
-                    <h3 style="margin-top: 0;">Tipos de Codificación</h3>
-                    
-                    <!-- Buscador -->
-                    <input type="text" id="buscarCodigo" placeholder="Buscar código..." onkeyup="filtrarCodigos()" style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    
-                    <!-- Lista de Códigos -->
-                    <ul id="listaCodigos" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto; margin: 0;"></ul>
-            
-                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-            
-                    <!-- Formulario para Agregar Nuevo Código -->
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="nuevoCodigoInput" placeholder="NUEVO PREFIJO (EJ: DKT)" style="text-transform: uppercase; flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                        <!-- Botón Agregar idéntico al de Guardar OC -->
-                        <button type="button" onclick="agregarCodigo()" style="background-color: #8b0000; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 8px 15px; font-weight: bold;">
-                            + Agregar
-                        </button>
+                        <!-- Nuevo Modal para Tipos de Codificación (Centrado) -->
+                        <div id="modalCodigos" class="modal"
+                            style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+                            <div class="modal-content"
+                                style="background-color: white; padding: 25px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                                <span class="close" onclick="cerrarModalCodigos()"
+                                    style="position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer; color: #555;">&times;</span>
+                                <h3 style="margin-top: 0;">Tipos de Codificación</h3>
+
+                                <!-- Buscador -->
+                                <input type="text" id="buscarCodigo" placeholder="Buscar código..."
+                                    onkeyup="filtrarCodigos()"
+                                    style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+
+                                <!-- Lista de Códigos -->
+                                <ul id="listaCodigos"
+                                    style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto; margin: 0;">
+                                </ul>
+
+                                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+
+                                <!-- Formulario para Agregar Nuevo Código -->
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="nuevoCodigoInput" placeholder="NUEVO PREFIJO (EJ: DKT)"
+                                        style="text-transform: uppercase; flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <!-- Botón Agregar idéntico al de Guardar OC -->
+                                    <button type="button" onclick="agregarCodigo()"
+                                        style="background-color: #8b0000; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 8px 15px; font-weight: bold;">
+                                        + Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-                    </div>
-                    
+
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Proveedor:</label>
                             <div class="input-with-btn">
                                 <input type="text" id="proveedor-nombre" placeholder="Nombre o Razón Social" readonly>
-                                <button class="btn-icon" onclick="abrirModalBusqueda('PROVEEDOR')" title="Buscar Proveedor"><i class="ri-search-line"></i></button>
+                                <button class="btn-icon" onclick="abrirModalBusqueda('PROVEEDOR')"
+                                    title="Buscar Proveedor"><i class="ri-search-line"></i></button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -314,7 +343,8 @@
                             <label>Facturar a (Cliente):</label>
                             <div class="input-with-btn">
                                 <input type="text" id="facturar-a" placeholder="Razón Social Factura" readonly>
-                                <button class="btn-icon" onclick="abrirModalBusqueda('CLIENTE')" title="Buscar Cliente"><i class="ri-search-line"></i></button>
+                                <button class="btn-icon" onclick="abrirModalBusqueda('CLIENTE')"
+                                    title="Buscar Cliente"><i class="ri-search-line"></i></button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -338,23 +368,28 @@
                                 <option value="ANTICIPO">Con Anticipo</option>
                             </select>
                         </div>
-                        
+
                         <!-- Contenedor dinámico para CRÉDITO (Oculto por defecto) -->
-                        <div id="contenedor-credito" class="form-group" style="display: none; animation: fadeIn 0.3s ease-in-out;">
-                            <label for="fecha-vencimiento">Fecha de Vencimiento <span style="color: red;">*</span></label>
+                        <div id="contenedor-credito" class="form-group"
+                            style="display: none; animation: fadeIn 0.3s ease-in-out;">
+                            <label for="fecha-vencimiento">Fecha de Vencimiento <span
+                                    style="color: red;">*</span></label>
                             <input type="date" id="fecha-vencimiento" class="form-control">
                         </div>
-                        
+
                         <!-- Contenedor dinámico para ANTICIPO (Oculto por defecto) -->
                         <div id="contenedor-anticipo" style="display: none; animation: fadeIn 0.3s ease-in-out;">
                             <div class="form-group">
-                                <label for="monto-pagado">Monto de Anticipo (Bs.) <span style="color: red;">*</span></label>
-                                <input type="number" id="monto-pagado" class="form-control" step="0.01" min="0" placeholder="Ej. 1500.50">
+                                <label for="monto-pagado">Monto de Anticipo (Bs.) <span
+                                        style="color: red;">*</span></label>
+                                <input type="number" id="monto-pagado" class="form-control" step="0.01" min="0"
+                                    placeholder="Ej. 1500.50">
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="porcentaje-anticipo">Porcentaje Acordado (%)</label>
-                                <input type="number" id="porcentaje-anticipo" class="form-control" step="1" min="1" max="99" placeholder="Ej. 50">
+                                <input type="number" id="porcentaje-anticipo" class="form-control" step="1" min="1"
+                                    max="99" placeholder="Ej. 50">
                             </div>
                         </div>
                     </div>
@@ -376,13 +411,79 @@
                             <tbody id="items-body"></tbody>
                         </table>
                     </div>
-                    <button class="btn btn-secondary mt-10" onclick="agregarFilaItem()"><i class="ri-add-line"></i> Agregar Ítem</button>
+                    <button class="btn btn-secondary mt-10" onclick="agregarFilaItem()"><i class="ri-add-line"></i>
+                        Agregar Ítem</button>
 
                     <div class="totals-section">
-                        <div class="obs-box">
-                            <label>Observaciones:</label>
-                            <textarea id="observacion" rows="3" placeholder="Escriba alguna observación..."></textarea>
+                        <!-- Lado Izquierdo: Observaciones + Tabla Excel de Pagos -->
+                        <div class="obs-box"
+                            style="display: flex; flex-direction: column; gap: 15px; flex: 1; margin-right: 20px;">
+                            <div>
+                                <label style="font-weight: bold; color: #475569;">Observaciones:</label>
+                                <textarea id="observacion" rows="3" placeholder="Escriba alguna observación..."
+                                    style="width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px;"></textarea>
+                            </div>
+
+                            <!-- Módulo de Pagos Compacto (Estilo Excel) -->
+                            <div id="modulo-pagos"
+                                style="display: none; border: 1px solid #94a3b8; border-radius: 4px; overflow: hidden; background: #fff;">
+                                <div
+                                    style="background: #e2e8f0; padding: 6px 10px; border-bottom: 1px solid #94a3b8; font-weight: bold; font-size: 12px; color: #334155;">
+                                    <i class="ri-money-dollar-circle-line"></i> REGISTRO DE PAGOS (BORRADOR)
+                                </div>
+                                <table
+                                    style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: center;">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #94a3b8;">
+                                        <tr>
+                                            <th
+                                                style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: 600;">
+                                                Nº Recibo</th>
+                                            <th
+                                                style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: 600;">
+                                                Fecha</th>
+                                            <th
+                                                style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: 600;">
+                                                Monto (Bs.)</th>
+                                            <th style="padding: 6px; width: 40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <!-- Aquí se inyectan las filas guardadas -->
+                                    <tbody id="tabla-borrador-pagos">
+                                        <tr id="fila-sin-pagos">
+                                            <td colspan="4" style="padding: 10px; color: #94a3b8; font-style: italic;">
+                                                Sin pagos registrados.</td>
+                                        </tr>
+                                    </tbody>
+                                    <!-- Fila de ingreso rápido -->
+                                    <tfoot style="border-top: 1px solid #94a3b8; background: #f1f5f9;">
+                                        <tr>
+                                            <td style="padding: 0; border-right: 1px solid #cbd5e1;">
+                                                <input type="text" id="nuevo-recibo" placeholder="REC-001"
+                                                    style="width: 100%; border: none; padding: 6px; text-align: center; background: transparent; outline: none; text-transform: uppercase;">
+                                            </td>
+                                            <td style="padding: 0; border-right: 1px solid #cbd5e1;">
+                                                <input type="date" id="nuevo-pago-fecha"
+                                                    style="width: 100%; border: none; padding: 6px; text-align: center; background: transparent; outline: none;">
+                                            </td>
+                                            <td style="padding: 0; border-right: 1px solid #cbd5e1;">
+                                                <input type="number" id="nuevo-pago-monto" step="0.01"
+                                                    placeholder="0.00"
+                                                    style="width: 100%; border: none; padding: 6px; text-align: center; background: transparent; outline: none;">
+                                            </td>
+                                            <td style="padding: 0;">
+                                                <button type="button" id="btn-agregar-pago-ui"
+                                                    style="width: 100%; height: 100%; border: none; background: #3b82f6; color: white; cursor: pointer; padding: 6px;"
+                                                    title="Añadir a tabla">
+                                                    <i class="ri-add-line"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
                         </div>
+
+                        <!-- Lado Derecho: Totales -->
                         <div class="summary-box">
                             <div class="summary-row">
                                 <span>SUB-TOTAL:</span>
@@ -390,205 +491,175 @@
                             </div>
                             <div class="summary-row">
                                 <span>DESCUENTO (%):</span>
-                                <input type="number" id="descuento-pct" value="0" min="0" max="100" style="width: 60px;" onchange="calcularTotales()">
+                                <input type="number" id="descuento-pct" value="0" min="0" max="100"
+                                    style="width: 60px; text-align: center;" onchange="calcularTotales()">
                             </div>
                             <div class="summary-row total-row">
                                 <span>TOTAL BS.-</span>
                                 <strong id="lbl-total">0.00</strong>
                             </div>
                         </div>
-                        <!-- Módulo de Historial y Registro de Pagos (Oculto por defecto en Modo Creación) -->
-                        <div id="modulo-pagos" class="mt-4 p-4" style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
-                            <h4 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Historial de Pagos</h4>
-                            
-                            <!-- Tabla donde se cargarán los recibos anteriores -->
-                            <table class="table table-sm table-bordered mt-3" style="background: white;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Nº de Recibo</th>
-                                        <th>Fecha de Pago</th>
-                                        <th>Monto (Bs.)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-historial-pagos">
-                                    <!-- Los registros se inyectarán aquí vía JavaScript -->
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted">No hay pagos registrados.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        
-                            <hr class="my-4">
-                        
-                            <!-- Formulario para agregar un nuevo pago -->
-                            <h5>Registrar Nuevo Pago</h5>
-                            <div class="row mt-2">
-                                <div class="col-md-4 form-group">
-                                    <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
-                                    <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
-                                </div>
-                                <div class="col-md-3 form-group">
-                                    <label for="nuevo-pago-fecha">Fecha</label>
-                                    <input type="date" id="nuevo-pago-fecha" class="form-control">
-                                </div>
-                                <div class="col-md-3 form-group">
-                                    <label for="nuevo-pago-monto">Monto (Bs.)</label>
-                                    <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
-                                </div>
-                                <div class="col-md-2 form-group d-flex align-items-end">
-                                    <button type="button" class="btn btn-success w-100" id="btn-guardar-pago">
-                                        <i class="fas fa-plus"></i> Añadir
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="form-actions">
+                    <div class="form-actions mt-15" style="display: flex; justify-content: flex-end; margin-top: 20px;">
                         <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
                             <i class="ri-save-line"></i> Guardar Orden de Compra
                         </button>
                     </div>
-                    <!-- Módulo de Pagos (Se muestra al elegir Crédito o Anticipo) -->
-                    <div id="modulo-pagos" class="mt-4 p-4" style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
-                        <h5 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Registro de Pagos / Anticipos</h5>
-                        
-                        <!-- Formulario para agregar un pago a la tabla -->
-                        <div class="row mt-3">
-                            <div class="col-md-4 form-group">
-                                <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
-                                <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
-                            </div>
-                            <div class="col-md-3 form-group">
-                                <label for="nuevo-pago-fecha">Fecha</label>
-                                <input type="date" id="nuevo-pago-fecha" class="form-control">
-                            </div>
-                            <div class="col-md-3 form-group">
-                                <label for="nuevo-pago-monto">Monto (Bs.)</label>
-                                <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
-                            </div>
-                            <div class="col-md-2 form-group d-flex align-items-end">
-                                <button type="button" class="btn btn-secondary w-100" id="btn-agregar-pago-ui">
-                                    <i class="fas fa-plus"></i> Añadir a tabla
-                                </button>
-                            </div>
-                        </div>
-                    
-                        <!-- Tabla borrador de pagos -->
-                        <table class="table table-sm table-bordered mt-3" style="background: white;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Nº de Recibo</th>
-                                    <th>Fecha</th>
-                                    <th>Monto (Bs.)</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-borrador-pagos">
-                                <tr id="fila-sin-pagos">
-                                    <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para esta orden.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button class="btn btn-primary btn-lg" onclick="guardarOrdenCompra()">
+                    <i class="ri-save-line"></i> Guardar Orden de Compra
+                </button>
+            </div>
+            <!-- Módulo de Pagos (Se muestra al elegir Crédito o Anticipo) -->
+            <div id="modulo-pagos" class="mt-4 p-4"
+                style="display: none; background: #f4f6f9; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h5 style="color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 5px;">Registro de
+                    Pagos / Anticipos</h5>
+
+                <!-- Formulario para agregar un pago a la tabla -->
+                <div class="row mt-3">
+                    <div class="col-md-4 form-group">
+                        <label for="nuevo-recibo">Nº Comprobante / Recibo</label>
+                        <input type="text" id="nuevo-recibo" class="form-control" placeholder="Ej. REC-001">
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="nuevo-pago-fecha">Fecha</label>
+                        <input type="date" id="nuevo-pago-fecha" class="form-control">
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="nuevo-pago-monto">Monto (Bs.)</label>
+                        <input type="number" id="nuevo-pago-monto" class="form-control" step="0.01">
+                    </div>
+                    <div class="col-md-2 form-group d-flex align-items-end">
+                        <button type="button" class="btn btn-secondary w-100" id="btn-agregar-pago-ui">
+                            <i class="fas fa-plus"></i> Añadir a tabla
+                        </button>
                     </div>
                 </div>
-            </section>
 
-            <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
-            <section id="vista-clientes" class="vista">
-                <div class="topbar-actions mb-15">
-                    <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search" style="width: 300px;">
-                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
-                        <i class="ri-add-line"></i> Registrar Cliente / Empresa
-                    </button>
-                </div>
+                <!-- Tabla borrador de pagos -->
+                <table class="table table-sm table-bordered mt-3" style="background: white;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nº de Recibo</th>
+                            <th>Fecha</th>
+                            <th>Monto (Bs.)</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-borrador-pagos">
+                        <tr id="fila-sin-pagos">
+                            <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para
+                                esta orden.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+    </div>
+    </section>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>NIT / CI</th>
-                                <th>RAZÓN SOCIAL / EMPRESA</th>
-                                <th>CONTACTO PRINCIPAL</th>
-                                <th>TELÉFONO</th>
-                                <th>DIRECCIÓN</th>
-                                <th>ESTADO</th>
-                                <th>ACCIONES</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-clientes-body">
-                            <!-- El contenido se cargará dinámicamente desde Supabase -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <!-- SECCIÓN 3: CLIENTES / EMPRESAS -->
+    <section id="vista-clientes" class="vista">
+        <div class="topbar-actions mb-15">
+            <input type="text" placeholder="🔍 Buscar cliente por Razón Social o NIT..." class="input-search"
+                style="width: 300px;">
+            <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-cliente')">
+                <i class="ri-add-line"></i> Registrar Cliente / Empresa
+            </button>
+        </div>
 
-            <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
-            <section id="vista-usuarios" class="vista">
-                <div class="topbar-actions mb-15">
-                    <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search" style="width: 300px;">
-                    <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
-                        <i class="ri-user-add-line"></i> Crear Nuevo Usuario
-                    </button>
-                </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>NIT / CI</th>
+                        <th>RAZÓN SOCIAL / EMPRESA</th>
+                        <th>CONTACTO PRINCIPAL</th>
+                        <th>TELÉFONO</th>
+                        <th>DIRECCIÓN</th>
+                        <th>ESTADO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-clientes-body">
+                    <!-- El contenido se cargará dinámicamente desde Supabase -->
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>CI</th>
-                                <th>NOMBRE COMPLETO</th>
-                                <th>USUARIO</th>
-                                <th>PRIVILEGIO / ROL</th>
-                                <th>ESTADO</th>
-                                <th>FECHA REGISTRO</th>
-                                <th>ACCIONES</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-usuarios-body">
-                            <!-- Datos de usuarios -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <!-- SECCIÓN 4: USUARIOS Y PERMISOS -->
+    <section id="vista-usuarios" class="vista">
+        <div class="topbar-actions mb-15">
+            <input type="text" placeholder="🔍 Buscar usuario por nombre, CI o usuario..." class="input-search"
+                style="width: 300px;">
+            <button class="btn btn-primary" onclick="abrirModal('modal-nuevo-usuario')">
+                <i class="ri-user-add-line"></i> Crear Nuevo Usuario
+            </button>
+        </div>
 
-            <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
-            <section id="vista-bitacora" class="vista">
-                <div class="filter-box mb-15">
-                    <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search" style="flex: 1;">
-                    <select class="input-select">
-                        <option value="">Todos los Módulos</option>
-                        <option value="USUARIOS">Usuarios</option>
-                        <option value="CLIENTES">Clientes</option>
-                        <option value="ORDENES">Órdenes de Compra</option>
-                    </select>
-                    <select class="input-select">
-                        <option value="">Todas las Gestiones</option>
-                        <option value="CREAR">Crear</option>
-                        <option value="EDITAR">Editar</option>
-                        <option value="INACTIVAR">Inactivar</option>
-                    </select>
-                </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>CI</th>
+                        <th>NOMBRE COMPLETO</th>
+                        <th>USUARIO</th>
+                        <th>PRIVILEGIO / ROL</th>
+                        <th>ESTADO</th>
+                        <th>FECHA REGISTRO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-usuarios-body">
+                    <!-- Datos de usuarios -->
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>FECHA Y HORA</th>
-                                <th>USUARIO</th>
-                                <th>MÓDULO</th>
-                                <th>GESTIÓN / ACCIÓN</th>
-                                <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-bitacora-body">
-                            <!-- Datos bitácora -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <!-- SECCIÓN 5: BITÁCORA / AUDITORÍA -->
+    <section id="vista-bitacora" class="vista">
+        <div class="filter-box mb-15">
+            <input type="text" placeholder="🔍 Buscar por usuario, módulo o descripción..." class="input-search"
+                style="flex: 1;">
+            <select class="input-select">
+                <option value="">Todos los Módulos</option>
+                <option value="USUARIOS">Usuarios</option>
+                <option value="CLIENTES">Clientes</option>
+                <option value="ORDENES">Órdenes de Compra</option>
+            </select>
+            <select class="input-select">
+                <option value="">Todas las Gestiones</option>
+                <option value="CREAR">Crear</option>
+                <option value="EDITAR">Editar</option>
+                <option value="INACTIVAR">Inactivar</option>
+            </select>
+        </div>
 
-        </main>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>FECHA Y HORA</th>
+                        <th>USUARIO</th>
+                        <th>MÓDULO</th>
+                        <th>GESTIÓN / ACCIÓN</th>
+                        <th>DESCRIPCIÓN DE LA ACTIVIDAD</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-bitacora-body">
+                    <!-- Datos bitácora -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    </main>
     </div> <!-- Cierre de #app-layout -->
 
     <!-- ==================== MODALES ==================== -->
@@ -602,8 +673,10 @@
             </div>
             <div class="modal-body">
                 <div class="topbar-actions mb-10">
-                    <input type="text" id="input-filtro-busqueda" placeholder="Buscar por Nombre o NIT..." class="input-search" style="width: 70%;" onkeyup="filtrarTablaBusqueda()">
-                    <button class="btn btn-primary" onclick="redirigirCreacionEntidad()" style="width: 28%;"><i class="ri-add-line"></i> Agregar</button>
+                    <input type="text" id="input-filtro-busqueda" placeholder="Buscar por Nombre o NIT..."
+                        class="input-search" style="width: 70%;" onkeyup="filtrarTablaBusqueda()">
+                    <button class="btn btn-primary" onclick="redirigirCreacionEntidad()" style="width: 28%;"><i
+                            class="ri-add-line"></i> Agregar</button>
                 </div>
                 <div class="table-container" style="max-height: 250px; overflow-y: auto;">
                     <table class="data-table">
@@ -631,14 +704,14 @@
                 <span class="close-modal" onclick="cerrarModal('modal-nuevo-cliente')">&times;</span>
             </div>
             <form id="form-nuevo-cliente" class="modal-body" onsubmit="guardarNuevoCliente(event)">
-    
-            <!-- NUEVO CAMPO: TIPO DE ENTIDAD -->
+
+                <!-- NUEVO CAMPO: TIPO DE ENTIDAD -->
                 <div class="form-group mb-10" id="contenedor-tipo-cliente">
                     <label>Tipo de Entidad:</label>
                     <select id="cliente-tipo" class="form-control">
                         <option value="CLIENTE">Cliente (Facturación)</option>
                         <option value="PROVEEDOR">Proveedor (Compras)</option>
-                </select>
+                    </select>
                 </div>
                 <div class="form-group mb-10">
                     <label>Razón Social / Nombre Empresa:</label>
@@ -727,69 +800,78 @@
                 <span class="close-modal" onclick="cerrarModal('modal-autorizacion')">&times;</span>
             </div>
             <div class="modal-body">
-                <p class="mb-10">La Orden N° <strong id="lbl-oc-autorizar">01-DKT</strong> requiere aprobación de un <strong>Encargado</strong>.</p>
-                
+                <p class="mb-10">La Orden N° <strong id="lbl-oc-autorizar">01-DKT</strong> requiere aprobación de un
+                    <strong>Encargado</strong>.
+                </p>
+
                 <div class="form-group mb-15">
                     <label>Motivo del Cambio o Anulación:</label>
-                    <textarea id="motivo-cambio" rows="3" placeholder="Escriba la razón de la modificación o anulación..." readonly>Error en la cantidad de ítems del proveedor.</textarea>
+                    <textarea id="motivo-cambio" rows="3"
+                        placeholder="Escriba la razón de la modificación o anulación..."
+                        readonly>Error en la cantidad de ítems del proveedor.</textarea>
                 </div>
 
                 <div id="bloque-acciones-encargado" class="form-actions" style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" style="flex: 1; background-color: #10b981;"><i class="ri-check-line"></i> Aprobar Cambio</button>
-                    <button class="btn btn-primary" style="flex: 1; background-color: #dc2626;"><i class="ri-close-line"></i> Rechazar</button>
+                    <button class="btn btn-primary" style="flex: 1; background-color: #10b981;"><i
+                            class="ri-check-line"></i> Aprobar Cambio</button>
+                    <button class="btn btn-primary" style="flex: 1; background-color: #dc2626;"><i
+                            class="ri-close-line"></i> Rechazar</button>
                 </div>
             </div>
         </div>
     </div>
-<!-- ==========================================
+    <!-- ==========================================
      MODAL: EDITAR USUARIO
      ========================================== -->
-<div id="modal-editar-usuario" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header">
-            <h3><i class="ri-edit-user-line"></i> Editar Usuario</h3>
-            <!-- Asumo que tienes una función cerrarModal, si no, usa la tuya -->
-            <button class="btn-close" onclick="document.getElementById('modal-editar-usuario').style.display='none'"><i class="ri-close-line"></i></button>
-        </div>
-        
-        <div class="modal-body">
-            <!-- Campo oculto para guardar el ID de Supabase sin que se vea -->
-            <input type="hidden" id="edit-auth-id">
-            
-            <div class="form-group mb-15">
-                <label for="edit-ci">Carnet de Identidad (CI)</label>
-                <input type="text" id="edit-ci" class="form-control" placeholder="Ej: 1234567">
+    <div id="modal-editar-usuario" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3><i class="ri-edit-user-line"></i> Editar Usuario</h3>
+                <!-- Asumo que tienes una función cerrarModal, si no, usa la tuya -->
+                <button class="btn-close"
+                    onclick="document.getElementById('modal-editar-usuario').style.display='none'"><i
+                        class="ri-close-line"></i></button>
             </div>
-            
-            <div class="form-group mb-15">
-                <label for="edit-nombre">Nombre Completo</label>
-                <input type="text" id="edit-nombre" class="form-control" placeholder="Nombre y Apellido">
+
+            <div class="modal-body">
+                <!-- Campo oculto para guardar el ID de Supabase sin que se vea -->
+                <input type="hidden" id="edit-auth-id">
+
+                <div class="form-group mb-15">
+                    <label for="edit-ci">Carnet de Identidad (CI)</label>
+                    <input type="text" id="edit-ci" class="form-control" placeholder="Ej: 1234567">
+                </div>
+
+                <div class="form-group mb-15">
+                    <label for="edit-nombre">Nombre Completo</label>
+                    <input type="text" id="edit-nombre" class="form-control" placeholder="Nombre y Apellido">
+                </div>
+
+                <div class="form-group mb-15">
+                    <label for="edit-privilegio">Privilegio / Rol</label>
+                    <select id="edit-privilegio" class="form-control">
+                        <option value="">Cargando roles...</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-15">
+                    <label for="edit-estado">Estado de la Cuenta</label>
+                    <select id="edit-estado" class="form-control">
+                        <option value="true">Activo (Puede ingresar)</option>
+                        <option value="false">Inactivo (No puede ingresar)</option>
+                    </select>
+                </div>
             </div>
-            
-            <div class="form-group mb-15">
-                <label for="edit-privilegio">Privilegio / Rol</label>
-                <select id="edit-privilegio" class="form-control">
-                    <option value="">Cargando roles...</option>
-                </select>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                    onclick="document.getElementById('modal-editar-usuario').style.display='none'">Cancelar</button>
+                <button class="btn btn-primary" onclick="procesarEdicion()">Guardar Cambios</button>
             </div>
-            
-            <div class="form-group mb-15">
-                <label for="edit-estado">Estado de la Cuenta</label>
-                <select id="edit-estado" class="form-control">
-                    <option value="true">Activo (Puede ingresar)</option>
-                    <option value="false">Inactivo (No puede ingresar)</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="document.getElementById('modal-editar-usuario').style.display='none'">Cancelar</button>
-            <button class="btn btn-primary" onclick="procesarEdicion()">Guardar Cambios</button>
         </div>
     </div>
-</div>
 
-<!-- MODAL 5: EDITAR CLIENTE -->
+    <!-- MODAL 5: EDITAR CLIENTE -->
     <div id="modal-editar-cliente" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -809,7 +891,7 @@
                         <option value="PROVEEDOR">Proveedor (Compras)</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group mb-10">
                     <label>NIT / CI:</label>
                     <input type="text" id="edit-cliente-nit">
@@ -843,7 +925,8 @@
             </form>
         </div>
     </div>
-    
-<script src="app.js"></script>
+
+    <script src="app.js"></script>
 </body>
+
 </html>
