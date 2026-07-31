@@ -757,30 +757,42 @@ async function guardarOrdenCompra() {
         }
 
         // =================================================================
-        // 5.5 NUEVO: INSERCIÓN AUTOMÁTICA EN EL HISTORIAL DE PAGOS
+        // 5.5 NUEVO: INSERCIÓN DE PAGOS DESDE LA TABLA BORRADOR
         // =================================================================
-        if ((formaPago === 'ANTICIPO' || formaPago === 'CONTADO') && montoPagadoFinal > 0) {
-            // Nota: Si es al contado, también registramos el pago total como recibo para que quede constancia
-            const identificadorRecibo = formaPago === 'CONTADO' ? 'PAGO-CONTADO' : 'ANTICIPO-INICIAL';
-            
-            const pagoInicial = {
-                orden_id: idOrdenGenerada,
-                numero_recibo: identificadorRecibo,
-                monto: montoPagadoFinal,
-                fecha_pago: fechaSolicitud // Usamos la misma fecha de creación de la OC
-            };
+        if (formaPago === 'ANTICIPO' || formaPago === 'CREDITO') {
+            const filasPagos = document.querySelectorAll('.fila-pago-borrador');
+            const pagosAInsertar = [];
 
-            const { error: errorPago } = await _supabase
-                .from('historial_pagos')
-                .insert([pagoInicial]);
+            filasPagos.forEach(tr => {
+                pagosAInsertar.push({
+                    orden_id: idOrdenGenerada,
+                    numero_recibo: tr.dataset.recibo,
+                    fecha_pago: tr.dataset.fecha,
+                    monto: parseFloat(tr.dataset.monto)
+                });
+            });
 
-            if (errorPago) {
-                console.error("Error al registrar el pago inicial en el historial:", errorPago);
-                // No detenemos el proceso con throw, solo avisamos
-                alert("⚠️ La orden se creó, pero hubo un problema guardando el recibo inicial en el historial.");
+            if (pagosAInsertar.length > 0) {
+                const { error: errorPagos } = await _supabase
+                    .from('historial_pagos')
+                    .insert(pagosAInsertar);
+
+                if (errorPagos) {
+                    console.error("Error al registrar los pagos:", errorPagos);
+                    alert("⚠️ La orden y los ítems se crearon, pero hubo un error guardando el historial de pagos.");
+                }
             }
+        } else if (formaPago === 'CONTADO') {
+            // Si es al contado, mantenemos la lógica de crear un recibo automático por el total
+            const { error: errorPagoContado } = await _supabase
+                .from('historial_pagos')
+                .insert([{
+                    orden_id: idOrdenGenerada,
+                    numero_recibo: 'PAGO-CONTADO',
+                    fecha_pago: fechaSolicitud,
+                    monto: total
+                }]);
         }
-        // =================================================================
 
         // 6. ACTUALIZAR EL CORRELATIVO DEL CÓDIGO
         const nuevoCorrelativo = parseInt(correlativoActual) + 1;
@@ -1174,3 +1186,73 @@ async function cargarDashboard() {
         alert("Ocurrió un problema al cargar los reportes. Revisa la consola.");
     }
 }
+// Mostrar/Ocultar el módulo según la forma de pago
+document.getElementById('forma-pago').addEventListener('change', function() {
+    const moduloPagos = document.getElementById('modulo-pagos');
+    if (this.value === 'ANTICIPO' || this.value === 'CREDITO') {
+        moduloPagos.style.display = 'block';
+        // Sugerir la fecha de hoy por defecto en el input de pago
+        document.getElementById('nuevo-pago-fecha').value = new Date().toISOString().split('T')[0];
+    } else {
+        moduloPagos.style.display = 'none';
+        // Si eligen al contado, limpiamos la tabla para no guardar datos basura
+        document.getElementById('tabla-borrador-pagos').innerHTML = `
+            <tr id="fila-sin-pagos">
+                <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para esta orden.</td>
+            </tr>`;
+    }
+});
+
+// Agregar pago a la tabla HTML (Borrador)
+document.getElementById('btn-agregar-pago-ui').addEventListener('click', function() {
+    const recibo = document.getElementById('nuevo-recibo').value;
+    const fecha = document.getElementById('nuevo-pago-fecha').value;
+    const monto = parseFloat(document.getElementById('nuevo-pago-monto').value);
+
+    if (!recibo || !fecha || !monto || monto <= 0) {
+        return alert("⚠️ Por favor, ingresa un número de recibo, fecha y un monto válido mayor a 0.");
+    }
+
+    const tbody = document.getElementById('tabla-borrador-pagos');
+    
+    // Quitar el mensaje de "Sin pagos" si existe
+    const filaVacia = document.getElementById('fila-sin-pagos');
+    if (filaVacia) filaVacia.remove();
+
+    // Crear la nueva fila guardando los datos en atributos "data-" para leerlos al guardar
+    const tr = document.createElement('tr');
+    tr.className = 'fila-pago-borrador';
+    tr.dataset.recibo = recibo;
+    tr.dataset.fecha = fecha;
+    tr.dataset.monto = monto;
+
+    tr.innerHTML = `
+        <td>${recibo}</td>
+        <td>${fecha}</td>
+        <td>${monto.toFixed(2)}</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm btn-eliminar-pago-ui">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+
+    // Limpiar los inputs para el siguiente pago
+    document.getElementById('nuevo-recibo').value = '';
+    document.getElementById('nuevo-pago-monto').value = '';
+});
+
+// Eliminar un pago de la tabla borrador
+document.getElementById('tabla-borrador-pagos').addEventListener('click', function(e) {
+    if (e.target.closest('.btn-eliminar-pago-ui')) {
+        e.target.closest('tr').remove();
+        // Si nos quedamos sin pagos, volver a mostrar el mensaje vacío
+        if (this.children.length === 0) {
+            this.innerHTML = `
+                <tr id="fila-sin-pagos">
+                    <td colspan="4" class="text-center text-muted">Aún no se han registrado pagos para esta orden.</td>
+                </tr>`;
+        }
+    }
+});
