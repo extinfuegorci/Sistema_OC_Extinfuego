@@ -1375,25 +1375,124 @@ function obtenerBadgePago(estado) {
 // Variable global para saber qué orden estamos editando
 let idOrdenActualEdicion = null;
 
-async function editarOrden(idOrden) {
+window.editarOrden = async function(idOrden) {
+    // Guardamos el ID globalmente para saber qué orden estamos afectando
     idOrdenActualEdicion = idOrden;
     
-    // 1. Aquí harías tus consultas a Supabase para traer los datos de la orden, los ítems y los pagos usando el 'idOrden'
-    // const ordenData = ... 
-    
-    // 2. Muestras los botones de acción del lado derecho
-    document.getElementById('botones-edicion-orden').style.display = 'flex';
-    
-    // (Opcional) Puedes cambiar el texto del botón de guardar para que diga "Actualizar"
-    document.getElementById('btn-guardar-orden').innerHTML = '<i class="ri-refresh-line"></i> Actualizar Orden';
+    try {
+        // 1. Mostrar pantalla de carga
+        const loader = document.getElementById('pantalla-carga');
+        if (loader) loader.style.display = 'flex';
+        console.log("Cargando datos de la orden ID:", idOrden);
 
-    // 3. Cambiar a la vista de "Nueva Orden" (que ahora funciona como Modo Edición)
-    mostrarVista('vista-nueva-orden'); // Asumiendo que esta es tu función de navegación
-    
-    console.log("Cargando datos de la orden ID:", idOrden);
-    // 4. Llenarías tus inputs y tablas con los datos recuperados
+        // 2. CONSULTAS A SUPABASE (Ejecutadas en paralelo para mayor velocidad)
+        const [ordenRes, itemsRes, pagosRes] = await Promise.all([
+            _supabase.from('ordenes').select('*').eq('id', idOrden).single(),
+            _supabase.from('items_orden').select('*').eq('orden_id', idOrden).order('numero_item', { ascending: true }),
+            _supabase.from('historial_pagos').select('*').eq('orden_id', idOrden).order('id', { ascending: true })
+        ]);
+
+        if (ordenRes.error) throw ordenRes.error;
+        const orden = ordenRes.data;
+        const items = itemsRes.data || [];
+        const pagos = pagosRes.data || [];
+
+        // 3. LLENAR CAMPOS PRINCIPALES DE CABECERA
+        document.getElementById('oc-num').value = orden.numero_oc || '';
+        document.getElementById('proveedor-nombre').value = orden.proveedor_nombre || '';
+        document.getElementById('contacto-nombre').value = orden.contacto_nombre || '';
+        document.getElementById('fecha-solicitud').value = orden.fecha_solicitud || '';
+        document.getElementById('fecha-entrega').value = orden.fecha_entrega || '';
+        document.getElementById('facturar-a').value = orden.facturar_a || '';
+        document.getElementById('nit-factura').value = orden.nit_factura || '';
+        document.getElementById('empresa-solicitante').value = orden.empresa_solicitante || 'EXTINFUEGO';
+        document.getElementById('observacion').value = orden.observacion || '';
+        document.getElementById('descuento-pct').value = orden.descuento_porcentaje || 0;
+
+        // 4. LLENAR FORMA DE PAGO Y DISPARAR EVENTO PARA MOSTRAR/OCULTAR MÓDULOS
+        const selectPago = document.getElementById('forma-pago');
+        selectPago.value = orden.forma_pago || '';
+        selectPago.dispatchEvent(new Event('change')); // Fuerza al HTML a mostrar Credito/Anticipo
+
+        if (orden.forma_pago === 'CREDITO') {
+            document.getElementById('fecha-vencimiento').value = orden.fecha_vencimiento || '';
+        } else if (orden.forma_pago === 'ANTICIPO') {
+            document.getElementById('monto-pagado').value = orden.monto_pagado || '';
+            document.getElementById('porcentaje-anticipo').value = orden.porcentaje_anticipo || '';
+        }
+
+        // 5. LLENAR TABLA DE ÍTEMS (DETALLE)
+        const tbodyItems = document.getElementById('items-body');
+        tbodyItems.innerHTML = ''; // Limpiamos la fila vacía por defecto
+        
+        items.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center">${index + 1}</td>
+                <td><input type="number" value="${item.cantidad}" min="1" class="item-cant" onchange="calcularTotales()" style="width: 100%;"></td>
+                <td>
+                    <select class="item-unidad" style="width: 100%;">
+                        <option value="GLB" ${item.unidad === 'GLB' ? 'selected' : ''}>GLB</option>
+                        <option value="PZA" ${item.unidad === 'PZA' ? 'selected' : ''}>PZA</option>
+                        <option value="MTR" ${item.unidad === 'MTR' ? 'selected' : ''}>MTR</option>
+                        <option value="SER" ${item.unidad === 'SER' ? 'selected' : ''}>SER</option>
+                    </select>
+                </td>
+                <td><input type="text" value="${item.descripcion}" class="item-desc" style="width: 100%;"></td>
+                <td><input type="number" value="${item.precio_unitario}" step="0.01" class="item-precio" onchange="calcularTotales()" style="width: 100%;"></td>
+                <td class="item-subtotal-txt" style="font-weight: bold;">0.00</td>
+                <td><button type="button" class="btn-icon" onclick="eliminarFila(this)"><i class="ri-delete-bin-line"></i></button></td>
+            `;
+            tbodyItems.appendChild(tr);
+        });
+
+        // 6. LLENAR LA TABLA ESTILO EXCEL DE PAGOS (HISTORIAL)
+        const tbodyPagos = document.getElementById('tabla-borrador-pagos');
+        tbodyPagos.innerHTML = ''; // Limpiamos la tabla
+        
+        if (pagos.length > 0) {
+            pagos.forEach(pago => {
+                const tr = document.createElement('tr');
+                tr.className = 'fila-pago-borrador';
+                tr.dataset.recibo = pago.numero_recibo || '';
+                tr.dataset.fecha = pago.fecha_pago || '';
+                tr.dataset.monto = pago.monto || 0;
+                tr.style.borderBottom = "1px solid #cbd5e1";
+                
+                tr.innerHTML = `
+                    <td style="padding: 6px; border-right: 1px solid #cbd5e1;">${pago.numero_recibo}</td>
+                    <td style="padding: 6px; border-right: 1px solid #cbd5e1;">${pago.fecha_pago}</td>
+                    <td style="padding: 6px; border-right: 1px solid #cbd5e1; font-weight: bold;">${parseFloat(pago.monto).toFixed(2)}</td>
+                    <td style="padding: 6px;">
+                        <button type="button" class="btn-eliminar-pago-ui" style="background: none; border: none; color: #ef4444; cursor: pointer;" title="Eliminar">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </td>
+                `;
+                tbodyPagos.appendChild(tr);
+            });
+        } else {
+            tbodyPagos.innerHTML = `
+                <tr id="fila-sin-pagos">
+                    <td colspan="4" style="padding: 10px; color: #94a3b8; font-style: italic;">Sin pagos registrados.</td>
+                </tr>`;
+        }
+
+        // 7. HABILITAR EL MODO EDICIÓN EN LA INTERFAZ
+        document.getElementById('botones-edicion-orden').style.display = 'flex';
+        document.getElementById('btn-guardar-orden').innerHTML = '<i class="ri-refresh-line"></i> Actualizar Orden';
+
+        // 8. RECALCULAR MATEMÁTICAS Y CAMBIAR DE VISTA
+        calcularTotales(); // Esto actualizará los subtotales, totales y automáticamente llama a actualizarSaldosPagos()
+        cambiarVista('nueva-orden'); // Te lleva a la pantalla del formulario
+        
+    } catch (error) {
+        console.error("Error cargando la orden:", error);
+        alert("Hubo un error al intentar abrir esta Orden de Compra: " + error.message);
+        const loader = document.getElementById('pantalla-carga');
+        if (loader) loader.style.display = 'none';
+    }
 }
-
 async function solicitarAprobacion(tipoAccion) {
     if (!idOrdenActualEdicion) {
         alert("Error: No hay una orden seleccionada.");
