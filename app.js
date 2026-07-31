@@ -1130,45 +1130,49 @@ async function cargarDashboard() {
 
         if (tbody) tbody.innerHTML = '';
 
-        if (ordenes.length === 0) {
+        if (!ordenes || ordenes.length === 0) {
             if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;">No hay órdenes registradas aún.</td></tr>';
             return;
         }
 
-        // 4. Recorrer cada orden y construir la fila
+        // 4. Recorrer cada orden
         ordenes.forEach(orden => {
+            // MANEJO SEGURO: Convertimos null a 0 para que no colapse el código
             const monto = parseFloat(orden.monto_total) || 0;
+            const pagado = parseFloat(orden.monto_pagado) || 0;
+            const estadoActual = orden.estado || 'PENDIENTE';
+
             totalGastado += monto;
             
-            // Calculamos métricas
-            if (orden.estado === 'COMPLETADA' || orden.estado === 'APROBADO') {
-                totalPagado += monto;
-            } else if (orden.estado !== 'ANULADA') {
-                totalPendiente += monto;
+            // Calculamos métricas con los datos reales
+            if (estadoActual === 'COMPLETADA' || estadoActual === 'APROBADO' || pagado >= monto) {
+                totalPagado += pagado;
+            }
+            if (estadoActual !== 'ANULADA') {
+                totalPendiente += (monto - pagado > 0 ? monto - pagado : 0);
             }
 
-            // Formatear fechas para que se vean bonitas
-            const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud).toLocaleDateString('es-ES') : '-';
-            const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega).toLocaleDateString('es-ES') : '-';
+            // Formatear fechas (Añadimos T00:00:00 para evitar que el cambio de zona horaria reste un día)
+            const fechaIngreso = orden.fecha_solicitud ? new Date(orden.fecha_solicitud + 'T00:00:00').toLocaleDateString('es-ES') : '-';
+            const fechaEntrega = orden.fecha_entrega ? new Date(orden.fecha_entrega + 'T00:00:00').toLocaleDateString('es-ES') : '-';
 
-            // --- DISEÑO DE BADGES (Pasteles suaves) ---
-            // Badge para Estado General (Entrega/Proceso)
-            let badgeEntrega = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">${orden.estado || 'PENDIENTE'}</span>`;
-            if (orden.estado === 'COMPLETADA') badgeEntrega = `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">COMPLETADA</span>`;
-            if (orden.estado === 'ANULADA') badgeEntrega = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ANULADA</span>`;
-            if (orden.estado && orden.estado.includes('APROBACIÓN')) badgeEntrega = `<span style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">EN REVISIÓN</span>`;
+            // --- DISEÑO DE BADGES ---
+            let badgeEntrega = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">${estadoActual}</span>`;
+            if (estadoActual === 'COMPLETADA') badgeEntrega = `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">COMPLETADA</span>`;
+            if (estadoActual === 'ANULADA') badgeEntrega = `<span style="background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">ANULADA</span>`;
+            if (estadoActual.includes('APROBACIÓN')) badgeEntrega = `<span style="background-color: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">EN REVISIÓN</span>`;
 
-            // Badge para Pagos (Lógica básica: si lo pagado es mayor o igual al total)
-            const estaPagado = (parseFloat(orden.monto_pagado) >= monto && monto > 0);
+            // Lógica de Pago
+            const estaPagado = (pagado >= monto && monto > 0);
             const badgePago = estaPagado 
                 ? `<span style="background-color: #dcfce3; color: #166534; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PAGADO</span>`
-                : `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PENDIENTE</span>`;
+                : `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">PEND. DE PAGO</span>`;
 
-            // Construir la fila con EXACTAMENTE 7 columnas
+            // Construir la fila asegurando la columna CLIENTE (facturar_a)
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="padding: 12px 16px; color: #334155; font-weight: 500;">${orden.numero_oc || '-'}</td>
-                <td style="padding: 12px 16px; color: #475569;">${orden.proveedor_nombre || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569;">${orden.facturar_a || orden.proveedor_nombre || '-'}</td>
                 <td style="padding: 12px 16px; color: #475569;">${fechaIngreso}</td>
                 <td style="padding: 12px 16px; color: #475569;">${fechaEntrega}</td>
                 <td style="padding: 12px 16px;">${badgeEntrega}</td>
@@ -1182,7 +1186,7 @@ async function cargarDashboard() {
             if (tbody) tbody.appendChild(tr);
         });
 
-        // 5. Actualizar tarjetas del HTML
+        // 5. Actualizar tarjetas
         const metricGastado = document.getElementById('metric-total-gastado');
         const metricPagado = document.getElementById('metric-pagado');
         const metricPendiente = document.getElementById('metric-pendiente');
@@ -1196,6 +1200,7 @@ async function cargarDashboard() {
         alert("Ocurrió un problema al cargar los reportes. Revisa la consola.");
     }
 }
+
 // Mostrar/Ocultar el módulo según la forma de pago
 document.getElementById('forma-pago').addEventListener('change', function() {
     const moduloPagos = document.getElementById('modulo-pagos');
