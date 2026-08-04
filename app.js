@@ -228,7 +228,8 @@ function cambiarVista(idVista, btnElement = null) {
             'nueva-orden': 'Emisión de Orden de Compra',
             'clientes': 'Gestión de Clientes y Empresas',
             'usuarios': 'Control de Usuarios y Permisos',
-            'bitacora': 'Bitácora de Auditoría'
+            'bitacora': 'Bitácora de Auditoría',
+            'aprobaciones': 'Módulo de Aprobaciones'
         };
         
         const elemTitulo = document.getElementById('titulo-seccion');
@@ -237,6 +238,7 @@ function cambiarVista(idVista, btnElement = null) {
         if (idVista === 'clientes') cargarClientes();
         if (idVista === 'usuarios') cargarUsuarios();
         if (idVista === 'dashboard') cargarDashboard();
+        if (idVista === 'aprobaciones') cargarAprobaciones();
 
         // 3. Ocultar la pantalla de transición
         if (loader) loader.style.display = 'none';
@@ -1566,5 +1568,97 @@ async function solicitarAprobacion(tipoAccion) {
             console.error("Error al procesar la acción:", error);
             alert("Hubo un error al procesar la solicitud en la base de datos.");
         }
+    }
+}
+// ==========================================
+// MÓDULO DE APROBACIONES
+// ==========================================
+async function cargarAprobaciones() {
+    const tbody = document.getElementById('tabla-aprobaciones-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 20px;">Cargando solicitudes... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
+
+    // Determinar si el usuario actual es Admin (Privilegio 1)
+    const sesionString = localStorage.getItem('sesion_activa');
+    const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
+    const esAdmin = usuarioActual && usuarioActual.privilegio_id === 1;
+
+    // Buscar en Supabase solo las órdenes que tengan el prefijo APROBACIÓN_
+    const { data: ordenes, error } = await _supabase
+        .from('ordenes')
+        .select('*')
+        .or('estado.eq.APROBACIÓN_COMPLETADA,estado.eq.APROBACIÓN_ANULADA')
+        .order('fecha_solicitud', { ascending: false });
+
+    if (error || !ordenes || ordenes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 20px;">No hay solicitudes pendientes de aprobación en este momento.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = ordenes.map(orden => {
+        const fechaReq = orden.fecha_solicitud ? new Date(orden.fecha_solicitud + 'T00:00:00').toLocaleDateString('es-ES') : '-';
+        // Extraer si pidió "COMPLETADA" o "ANULADA"
+        const accionSolicitada = orden.estado.replace('APROBACIÓN_', ''); 
+        
+        // Estilos del badge de solicitud
+        let badgeStyle = accionSolicitada === 'COMPLETADA' 
+            ? 'background-color: #dbeafe; color: #1e3a8a;' // Azul
+            : 'background-color: #fee2e2; color: #991b1b;'; // Rojo
+        let badge = `<span style="${badgeStyle} padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;">MARCAR COMO ${accionSolicitada}</span>`;
+
+        // LÓGICA DE ROLES: Si es admin ve botones, si no, ve el estado de espera
+        let accionesHTML = '';
+        if (esAdmin) {
+            accionesHTML = `
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn btn-sm" style="background-color: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="resolverAprobacion('${orden.id}', '${accionSolicitada}')" title="Aprobar Solicitud">
+                        <i class="ri-check-double-line"></i> Aprobar
+                    </button>
+                    <button class="btn btn-sm" style="background-color: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="resolverAprobacion('${orden.id}', 'RECHAZAR')" title="Rechazar Solicitud">
+                        <i class="ri-close-circle-line"></i> Rechazar
+                    </button>
+                </div>
+            `;
+        } else {
+            accionesHTML = `<span style="color: #854d0e; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; background: #fef08a; padding: 4px 8px; border-radius: 4px;"><i class="ri-time-line"></i> Pendiente de Admin</span>`;
+        }
+
+        return `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px 16px; font-weight: 500; color: #334155;">${orden.numero_oc || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569;">${orden.proveedor_nombre || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569;">${fechaReq}</td>
+                <td style="padding: 12px 16px;">${badge}</td>
+                <td style="padding: 12px 16px;">${accionesHTML}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.resolverAprobacion = async function(idOrden, decision) {
+    let nuevoEstado = decision; 
+    let msjConfirmacion = decision === 'RECHAZAR' 
+        ? '¿Estás seguro de RECHAZAR esta solicitud? La orden volverá a su estado PENDIENTE original.' 
+        : `¿Estás seguro de APROBAR esta solicitud y marcar la orden como ${decision} definitivamente?`;
+
+    if (!confirm(msjConfirmacion)) return;
+
+    // Si el Admin rechaza la petición, la orden regresa a estar PENDIENTE
+    if (decision === 'RECHAZAR') nuevoEstado = 'PENDIENTE';
+
+    try {
+        const { error } = await _supabase
+            .from('ordenes')
+            .update({ estado: nuevoEstado })
+            .eq('id', idOrden);
+
+        if (error) throw error;
+
+        alert('✅ Solicitud procesada correctamente.');
+        cargarAprobaciones(); // Recarga visualmente la tabla para que desaparezca la fila procesada
+        
+    } catch (error) {
+        console.error("Error al procesar la aprobación:", error);
+        alert("❌ Ocurrió un error al intentar procesar la orden.");
     }
 }
