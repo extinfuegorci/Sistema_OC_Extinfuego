@@ -943,12 +943,16 @@
     <div id="plantilla-impresion">
         <div class="print-header">
             <div>
-                <h2>EXTINFUEGO</h2>
-                <p>Orden de Compra / Trabajo</p>
+                <!-- Ícono de fueguito con el color naranja/rojo -->
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ri-fire-fill" style="color: #ea580c; font-size: 32px;"></i> EXTINFUEGO
+                </h2>
+                <p style="margin-top: 5px; color: #555;">Orden de Compra / Trabajo</p>
             </div>
             <div style="text-align: right;">
                 <div class="print-title" id="print-oc-num">OC-000</div>
-                <p><strong>Fecha:</strong> <span id="print-fecha">--</span></p>
+                <p style="margin: 5px 0;"><strong>Fecha OC:</strong> <span id="print-fecha">--</span></p>
+                <p style="margin: 0; font-size: 11px; color: #666;">Impreso el: <span id="print-fecha-hora">--</span></p>
             </div>
         </div>
     
@@ -965,7 +969,7 @@
         </div>
     
         <table class="print-table">
-            <thead>
+            <thead style="background-color: #f1f5f9;">
                 <tr>
                     <th>CANT.</th>
                     <th>UNIDAD</th>
@@ -974,9 +978,7 @@
                     <th>SUBTOTAL (BS)</th>
                 </tr>
             </thead>
-            <tbody id="print-items-body">
-                <!-- Items generados por JS -->
-            </tbody>
+            <tbody id="print-items-body"></tbody>
         </table>
     
         <div class="print-totals">
@@ -988,23 +990,36 @@
                 <span><strong>Descuento:</strong></span>
                 <span id="print-descuento">0%</span>
             </div>
-            <div class="print-totals-row" style="border-top: 2px solid #000; font-weight: bold; font-size: 16px;">
+            <div class="print-totals-row" style="border-top: 2px solid #000; font-weight: bold; font-size: 16px; margin-top: 5px; padding-top: 5px;">
                 <span>TOTAL:</span>
                 <span id="print-total">Bs. 0.00</span>
             </div>
         </div>
         
+        <!-- SECCIÓN DE PAGOS / VENCIMIENTO (Se oculta por JS si es al CONTADO) -->
+        <div id="print-pagos-section" style="display: none; margin-top: 20px; border: 1px solid #cbd5e1; padding: 15px; border-radius: 4px;">
+            <h4 style="margin: 0 0 10px 0; color: #334155;">Detalle de Pagos (<span id="print-tipo-pago"></span>)</h4>
+            <p style="margin: 0 0 10px 0; font-size: 13px;"><strong>Fecha de Vencimiento:</strong> <span id="print-vencimiento" style="color: #dc2626; font-weight: bold;">--</span></p>
+            
+            <table class="print-pagos-table">
+                <thead style="background-color: #f8fafc;">
+                    <tr>
+                        <th>N° Recibo</th>
+                        <th>Fecha de Pago</th>
+                        <th>Monto Pagado (Bs)</th>
+                    </tr>
+                </thead>
+                <tbody id="print-pagos-body"></tbody>
+            </table>
+        </div>
+    
         <div style="margin-top: 20px;">
             <p><strong>Observaciones:</strong> <span id="print-obs">--</span></p>
         </div>
     
         <div class="print-signatures">
-            <div>
-                <div class="signature-line">Solicitado por</div>
-            </div>
-            <div>
-                <div class="signature-line">Aprobado por</div>
-            </div>
+            <div><div class="signature-line">Solicitado por</div></div>
+            <div><div class="signature-line">Aprobado por</div></div>
         </div>
     </div>
 
