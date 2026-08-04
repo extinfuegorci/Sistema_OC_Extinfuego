@@ -1611,17 +1611,18 @@ async function cargarAprobaciones() {
     const tbody = document.getElementById('tabla-aprobaciones-body');
     if (!tbody) return;
     
-    // Cambiamos el colspan a 6 porque agregamos una columna
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 20px;">Cargando solicitudes... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
+    // Cambiamos el colspan a 7 por la nueva columna "Nº"
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 20px;">Cargando solicitudes... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
 
     const sesionString = localStorage.getItem('sesion_activa');
     const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
     const esAdmin = usuarioActual && usuarioActual.privilegio_id === 1;
 
+    // ORDEN DE LLEGADA: ascending: true pone a los primeros que solicitaron arriba de la lista.
     let query = _supabase.from('ordenes')
         .select('*')
         .not('solicitado_por', 'is', null)
-        .order('fecha_solicitud_aprobacion', { ascending: false }); // Ahora ordenamos por la fecha exacta de la petición
+        .order('fecha_solicitud_aprobacion', { ascending: true }); 
 
     if (!esAdmin) {
         query = query.eq('solicitado_por', usuarioActual.nombre_completo);
@@ -1630,18 +1631,19 @@ async function cargarAprobaciones() {
     const { data: ordenes, error } = await query;
 
     if (error || !ordenes || ordenes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;">No hay solicitudes registradas.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;">No hay solicitudes registradas.</td></tr>`;
         return;
     }
 
-    // Función auxiliar para formatear Timestamp a "DD/MM/YYYY - HH:MM"
     const formatearFechaHora = (isoString) => {
         if (!isoString) return '-';
         const d = new Date(isoString);
         return `${d.toLocaleDateString('es-ES')}<br><span style="font-size: 11px; color: #94a3b8;"><i class="ri-time-line"></i> ${d.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}</span>`;
     };
 
-    tbody.innerHTML = ordenes.map(orden => {
+    // Usamos el index del .map() para crear el número de llegada
+    tbody.innerHTML = ordenes.map((orden, index) => {
+        const numLlegada = index + 1; 
         const fechaReq = formatearFechaHora(orden.fecha_solicitud_aprobacion);
         const fechaEjec = formatearFechaHora(orden.fecha_ejecucion);
         
@@ -1675,11 +1677,11 @@ async function cargarAprobaciones() {
             }
         } else if (orden.estado_aprobacion === 'APROBADA') {
             badgeStyle = 'background-color: #dcfce3; color: #166534;';
-            estadoTxt = `ACCIÓN ${accionSolicitada}`;
+            estadoTxt = `ORDEN ${accionSolicitada}`; // <--- CAMBIO AQUÍ
             accionesHTML = `<div style="text-align: center; font-size: 12px; color: #166534; font-weight: bold;">APROBADA<br><span style="font-weight: normal; font-size: 11px;">Por: ${orden.aprobado_por}</span></div>`;
         } else if (orden.estado_aprobacion === 'RECHAZADA') {
             badgeStyle = 'background-color: #fee2e2; color: #991b1b;';
-            estadoTxt = `RECHAZÓ ${accionSolicitada}`;
+            estadoTxt = `SOLICITUD RECHAZADA`; // <--- CAMBIO AQUÍ
             accionesHTML = `<div style="text-align: center; font-size: 12px; color: #991b1b; font-weight: bold;">RECHAZADA<br><span style="font-weight: normal; font-size: 11px;">Por: ${orden.aprobado_por}</span></div>`;
         }
 
@@ -1687,6 +1689,7 @@ async function cargarAprobaciones() {
 
         return `
             <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px 16px; font-weight: bold; color: #64748b; vertical-align: middle; text-align: center;">${numLlegada}</td>
                 <td style="padding: 12px 16px; font-weight: bold; color: #334155; vertical-align: middle;">${orden.numero_oc || '-'}</td>
                 <td style="padding: 12px 16px; color: #475569; vertical-align: middle;">
                     ${orden.proveedor_nombre || '-'}<br>
