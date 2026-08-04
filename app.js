@@ -1403,6 +1403,7 @@ function obtenerBadgePago(estado) {
 
 // Variable global para saber qué orden estamos editando
 let idOrdenActualEdicion = null;
+let formularioModificado = false;
 
 window.editarOrden = async function(idOrden) {
     // Guardamos el ID globalmente para saber qué orden estamos afectando
@@ -1784,10 +1785,9 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
 }
 function intentarCrearNuevaOrden() {
     // 1. Verificar si estamos editando y hubo cambios
-    if (typeof idOrdenActualEdicion !== 'undefined' && idOrdenActualEdicion && formularioModificado) {
+    // Añadimos typeof para evitar cualquier futuro crasheo si la variable se pierde
+    if (typeof idOrdenActualEdicion !== 'undefined' && idOrdenActualEdicion && typeof formularioModificado !== 'undefined' && formularioModificado) {
         const confirmarSalida = confirm("Realizaste modificaciones en esta orden. ¿Deseas salir sin actualizar?");
-        
-        // Si el usuario presiona "Cancelar/No", detenemos la función
         if (!confirmarSalida) {
             return; 
         }
@@ -1798,21 +1798,39 @@ function intentarCrearNuevaOrden() {
     formularioModificado = false;
 
     // 3. Limpiar los campos visuales
-    document.getElementById('oc-num').value = '';
-    document.getElementById('proveedor-nombre').value = '';
-    document.getElementById('contacto-nombre').value = '';
-    document.getElementById('fecha-solicitud').value = '';
-    document.getElementById('fecha-entrega').value = '';
-    document.getElementById('facturar-a').value = '';
-    document.getElementById('nit-factura').value = '';
-    document.getElementById('forma-pago').value = '';
-    document.getElementById('observacion').value = '';
+    const idsALimpiar = ['oc-num', 'proveedor-nombre', 'contacto-nombre', 'fecha-solicitud', 
+                         'fecha-entrega', 'facturar-a', 'nit-factura', 'observacion'];
+    idsALimpiar.forEach(id => {
+        if (document.getElementById(id)) document.getElementById(id).value = '';
+    });
     
-    // Limpiar tablas de ítems y pagos si existen
+    // Limpiar forma de pago para que oculte los módulos extra
+    const selectPago = document.getElementById('forma-pago');
+    if (selectPago) {
+        selectPago.value = '';
+        selectPago.dispatchEvent(new Event('change'));
+    }
+    
+    // Restaurar tabla de ítems a 1 fila vacía
     const itemsBody = document.getElementById('items-body');
-    if (itemsBody) itemsBody.innerHTML = '';
+    if (itemsBody) {
+        itemsBody.innerHTML = '';
+        agregarFilaItem();
+    }
     
-    // Recalcular totales a cero
+    // 4. RESTAURAR BOTONES DE CREACIÓN
+    const btnGuardar = document.getElementById('btn-guardar-orden');
+    const divBotonesEdicion = document.getElementById('botones-edicion-orden');
+    
+    if (btnGuardar) {
+        btnGuardar.style.display = 'block';
+        btnGuardar.innerHTML = '<i class="ri-save-line"></i> Guardar Orden de Compra';
+    }
+    if (divBotonesEdicion) {
+        divBotonesEdicion.style.display = 'none';
+    }
+    
+    // 5. Recalcular totales a cero
     if (typeof calcularTotales === 'function') calcularTotales();
 }
 
@@ -1939,21 +1957,33 @@ async function prepararImpresion(idOrden) {
         }
 
         // 5. Imprimir
-        const tituloOriginal = document.title;
+        const elemento = document.getElementById('plantilla-impresion');
         
-        // Limpiamos el nombre del proveedor para que no tenga espacios raros en el nombre del archivo
+        // Configuramos el elemento para que la librería pueda "tomarle foto" sin que el usuario lo vea
+        elemento.style.display = 'block';
+        elemento.style.position = 'absolute';
+        elemento.style.left = '-9999px'; // Lo sacamos de la pantalla
+        elemento.style.top = '0';
+        elemento.style.width = '800px'; // Ancho fijo para simular una hoja
+        elemento.style.padding = '20px'; 
+        
         const nombreProveedorLimpio = orden.proveedor_nombre.replace(/[^a-zA-Z0-9]/g, '_');
-        
-        // Cambiamos el título (Esto obliga a Chrome a usar este nombre al "Guardar como PDF")
-        document.title = `${orden.numero_oc}_${nombreProveedorLimpio}`;
+        const nombreArchivo = `${orden.numero_oc}_${nombreProveedorLimpio}.pdf`;
 
-        // Llamamos a la ventana de impresión / guardado
-        window.print();
+        // Opciones de máxima calidad para el PDF
+        const opcionesPDF = {
+            margin:       0.2, // Margen de la hoja
+            filename:     nombreArchivo,
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
 
-        // Restauramos el título original de tu sistema después de 1 segundo
-        setTimeout(() => {
-            document.title = tituloOriginal;
-        }, 1000);
+        // Generamos y descargamos directamente
+        html2pdf().set(opcionesPDF).from(elemento).save().then(() => {
+            // Ocultamos la plantilla una vez descargado
+            elemento.style.display = 'none';
+        });
 
     } catch (error) {
         console.error("Error preparando impresión:", error);
