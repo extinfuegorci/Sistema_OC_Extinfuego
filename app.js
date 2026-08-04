@@ -1659,7 +1659,15 @@ async function cargarAprobaciones() {
 
         if (orden.estado_aprobacion === 'PENDIENTE') {
             badgeStyle = 'background-color: #fef08a; color: #854d0e;';
-            estadoTxt = `SOLICITA ${accionSolicitada}`;
+            
+            // Ajustamos la gramática del texto según lo que se esté pidiendo
+            if (accionSolicitada === 'ANULADA') {
+                estadoTxt = 'SOLICITA ANULACIÓN';
+            } else if (accionSolicitada === 'COMPLETADA') {
+                estadoTxt = 'SOLICITA FINALIZACIÓN'; // o 'SOLICITA COMPLETAR' si prefieres
+            } else {
+                estadoTxt = `SOLICITA ${accionSolicitada}`; // Para REHABILITAR se leerá "SOLICITA REHABILITAR"
+            }
             
             if (esAdmin) {
                 accionesHTML = `
