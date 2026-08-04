@@ -151,9 +151,8 @@
                 <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
                     <i class="ri-dashboard-line"></i> Dashboard / Reportes
                 </button>
-                <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
-                    <i class="ri-file-add-line"></i> Nueva Orden
-                </button>
+                <button onclick="intentarCrearNuevaOrden()">+ Crear Orden</button>
+                <a href="#" onclick="intentarCrearNuevaOrden()">Nueva Orden</a>
                 <button class="nav-btn" onclick="cambiarVista('aprobaciones', this)" id="nav-aprobaciones">
                     <i class="ri-shield-check-line"></i> Aprobaciones
                 </button>
