@@ -939,6 +939,75 @@
         </div>
     </div>
 
+    <!-- PLANTILLA OCULTA PARA IMPRESIÓN -->
+    <div id="plantilla-impresion">
+        <div class="print-header">
+            <div>
+                <h2>EXTINFUEGO</h2>
+                <p>Orden de Compra / Trabajo</p>
+            </div>
+            <div style="text-align: right;">
+                <div class="print-title" id="print-oc-num">OC-000</div>
+                <p><strong>Fecha:</strong> <span id="print-fecha">--</span></p>
+            </div>
+        </div>
+    
+        <div class="print-info-grid">
+            <div>
+                <p><strong>Proveedor:</strong> <span id="print-proveedor">--</span></p>
+                <p><strong>Contacto:</strong> <span id="print-contacto">--</span></p>
+            </div>
+            <div>
+                <p><strong>Facturar a:</strong> <span id="print-factura">--</span></p>
+                <p><strong>NIT:</strong> <span id="print-nit">--</span></p>
+                <p><strong>Forma de Pago:</strong> <span id="print-pago">--</span></p>
+            </div>
+        </div>
+    
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>CANT.</th>
+                    <th>UNIDAD</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th>PRECIO UNIT. (BS)</th>
+                    <th>SUBTOTAL (BS)</th>
+                </tr>
+            </thead>
+            <tbody id="print-items-body">
+                <!-- Items generados por JS -->
+            </tbody>
+        </table>
+    
+        <div class="print-totals">
+            <div class="print-totals-row">
+                <span><strong>Subtotal:</strong></span>
+                <span id="print-subtotal">0.00</span>
+            </div>
+            <div class="print-totals-row">
+                <span><strong>Descuento:</strong></span>
+                <span id="print-descuento">0%</span>
+            </div>
+            <div class="print-totals-row" style="border-top: 2px solid #000; font-weight: bold; font-size: 16px;">
+                <span>TOTAL:</span>
+                <span id="print-total">Bs. 0.00</span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <p><strong>Observaciones:</strong> <span id="print-obs">--</span></p>
+        </div>
+    
+        <div class="print-signatures">
+            <div>
+                <div class="signature-line">Solicitado por</div>
+            </div>
+            <div>
+                <div class="signature-line">Aprobado por</div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 
