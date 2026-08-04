@@ -1563,17 +1563,19 @@ async function solicitarAprobacion(tipoAccion) {
     if (confirm(mensajeConfirmacion)) {
         try {
             const estadoAGuardar = esAdmin ? (tipoAccion === 'REHABILITAR' ? 'PENDIENTE' : tipoAccion) : `APROBACIÓN_${tipoAccion}`;
+            const timestampAhora = new Date().toISOString();
             
             let updateData = {
                 estado: estadoAGuardar,
                 solicitado_por: usuarioActual.nombre_completo,
-                estado_aprobacion: 'PENDIENTE'
+                estado_aprobacion: 'PENDIENTE',
+                fecha_solicitud_aprobacion: timestampAhora,
+                fecha_ejecucion: null // Limpiamos por si es una solicitud nueva sobre una orden vieja
             };
 
-            // ACCIÓN DIRECTA DEL ADMIN: Generar el texto exacto
+            // ACCIÓN DIRECTA DEL ADMIN
             if (esAdmin) {
                 const { data: orden } = await _supabase.from('ordenes').select('observacion').eq('id', idOrdenActualEdicion).single();
-                // Si ya había observación, le damos un salto de línea limpio
                 const obsAnterior = (orden.observacion && orden.observacion.trim() !== '') ? orden.observacion.trim() + '\n' : '';
                 const fechaHoy = new Date().toLocaleDateString('es-ES');
                 
@@ -1589,6 +1591,7 @@ async function solicitarAprobacion(tipoAccion) {
                 updateData.estado_aprobacion = 'APROBADA';
                 updateData.aprobado_por = usuarioActual.nombre_completo;
                 updateData.observacion = obsAnterior + textoObs;
+                updateData.fecha_ejecucion = timestampAhora; // Registramos su ejecución inmediata
             }
 
             const { error } = await _supabase.from('ordenes').update(updateData).eq('id', idOrdenActualEdicion);
@@ -1607,7 +1610,9 @@ async function solicitarAprobacion(tipoAccion) {
 async function cargarAprobaciones() {
     const tbody = document.getElementById('tabla-aprobaciones-body');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 20px;">Cargando solicitudes... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
+    
+    // Cambiamos el colspan a 6 porque agregamos una columna
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 20px;">Cargando solicitudes... <i class="ri-loader-4-line ri-spin"></i></td></tr>';
 
     const sesionString = localStorage.getItem('sesion_activa');
     const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
@@ -1616,9 +1621,8 @@ async function cargarAprobaciones() {
     let query = _supabase.from('ordenes')
         .select('*')
         .not('solicitado_por', 'is', null)
-        .order('fecha_solicitud', { ascending: false });
+        .order('fecha_solicitud_aprobacion', { ascending: false }); // Ahora ordenamos por la fecha exacta de la petición
 
-    // Los usuarios normales solo ven su propio historial de solicitudes
     if (!esAdmin) {
         query = query.eq('solicitado_por', usuarioActual.nombre_completo);
     }
@@ -1626,12 +1630,20 @@ async function cargarAprobaciones() {
     const { data: ordenes, error } = await query;
 
     if (error || !ordenes || ordenes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 20px;">No hay solicitudes registradas.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;">No hay solicitudes registradas.</td></tr>`;
         return;
     }
 
+    // Función auxiliar para formatear Timestamp a "DD/MM/YYYY - HH:MM"
+    const formatearFechaHora = (isoString) => {
+        if (!isoString) return '-';
+        const d = new Date(isoString);
+        return `${d.toLocaleDateString('es-ES')}<br><span style="font-size: 11px; color: #94a3b8;"><i class="ri-time-line"></i> ${d.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}</span>`;
+    };
+
     tbody.innerHTML = ordenes.map(orden => {
-        const fechaReq = orden.fecha_solicitud ? new Date(orden.fecha_solicitud + 'T00:00:00').toLocaleDateString('es-ES') : '-';
+        const fechaReq = formatearFechaHora(orden.fecha_solicitud_aprobacion);
+        const fechaEjec = formatearFechaHora(orden.fecha_ejecucion);
         
         let accionSolicitada = '';
         if (orden.estado.includes('COMPLETADA')) accionSolicitada = 'COMPLETADA';
@@ -1643,13 +1655,11 @@ async function cargarAprobaciones() {
         let estadoTxt = '';
         let accionesHTML = '';
 
-        // ESTADO PENDIENTE
         if (orden.estado_aprobacion === 'PENDIENTE') {
             badgeStyle = 'background-color: #fef08a; color: #854d0e;';
             estadoTxt = `SOLICITA ${accionSolicitada}`;
             
             if (esAdmin) {
-                // CENTRADO ABSOLUTO DE BOTONES
                 accionesHTML = `
                     <div style="display: flex; gap: 8px; justify-content: center; align-items: center; width: 100%;">
                         <button class="btn btn-sm" style="background-color: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="resolverAprobacion('${orden.id}', '${accionSolicitada}', true)">
@@ -1663,12 +1673,10 @@ async function cargarAprobaciones() {
             } else {
                 accionesHTML = `<div style="color: #854d0e; font-size: 12px; font-weight: bold; text-align: center;"><i class="ri-time-line"></i> Pendiente de Admin</div>`;
             }
-        // ESTADO APROBADA
         } else if (orden.estado_aprobacion === 'APROBADA') {
             badgeStyle = 'background-color: #dcfce3; color: #166534;';
             estadoTxt = `ACCIÓN ${accionSolicitada}`;
             accionesHTML = `<div style="text-align: center; font-size: 12px; color: #166534; font-weight: bold;">APROBADA<br><span style="font-weight: normal; font-size: 11px;">Por: ${orden.aprobado_por}</span></div>`;
-        // ESTADO RECHAZADA
         } else if (orden.estado_aprobacion === 'RECHAZADA') {
             badgeStyle = 'background-color: #fee2e2; color: #991b1b;';
             estadoTxt = `RECHAZÓ ${accionSolicitada}`;
@@ -1677,7 +1685,6 @@ async function cargarAprobaciones() {
 
         let badge = `<span style="${badgeStyle} padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; text-align: center; display: inline-block;">${estadoTxt}</span>`;
 
-        // SE AGREGA VERTICAL-ALIGN MIDDLE Y TEXT-ALIGN CENTER A LAS CELDAS FINALES
         return `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px 16px; font-weight: bold; color: #334155; vertical-align: middle;">${orden.numero_oc || '-'}</td>
@@ -1685,8 +1692,9 @@ async function cargarAprobaciones() {
                     ${orden.proveedor_nombre || '-'}<br>
                     <span style="font-size: 11px; color: #94a3b8;"><i class="ri-user-line"></i> Req: ${orden.solicitado_por}</span>
                 </td>
-                <td style="padding: 12px 16px; color: #475569; vertical-align: middle;">${fechaReq}</td>
+                <td style="padding: 12px 16px; color: #475569; vertical-align: middle; text-align: center;">${fechaReq}</td>
                 <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">${badge}</td>
+                <td style="padding: 12px 16px; color: #475569; vertical-align: middle; text-align: center;">${fechaEjec}</td>
                 <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">${accionesHTML}</td>
             </tr>
         `;
@@ -1703,10 +1711,10 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
     const sesionString = localStorage.getItem('sesion_activa');
     const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
     const nombreAdmin = usuarioActual ? usuarioActual.nombre_completo : 'Admin';
+    const timestampAhora = new Date().toISOString(); // Hora exacta en que el admin hace clic
 
     try {
         const { data: orden } = await _supabase.from('ordenes').select('observacion, solicitado_por').eq('id', idOrden).single();
-        // Preservamos el historial sumando un salto de línea limpio
         const obsAnterior = (orden.observacion && orden.observacion.trim() !== '') ? orden.observacion.trim() + '\n' : '';
         const fechaHoy = new Date().toLocaleDateString('es-ES');
         
@@ -1718,7 +1726,6 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
             if (accionSolicitada === 'COMPLETADA') nuevoEstado = 'COMPLETADA';
             if (accionSolicitada === 'REHABILITAR') nuevoEstado = 'PENDIENTE';
 
-            // FORMATO EXACTO SOLICITADO PARA APROBACIÓN
             if (accionSolicitada === 'REHABILITAR') {
                 textoObs = `REHABILITADA en fecha ${fechaHoy}, solicitada por ${orden.solicitado_por}, aprobada por ${nombreAdmin}`;
             } else if (accionSolicitada === 'ANULADA') {
@@ -1738,6 +1745,7 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
             estado: nuevoEstado,
             estado_aprobacion: aprueba ? 'APROBADA' : 'RECHAZADA',
             aprobado_por: nombreAdmin,
+            fecha_ejecucion: timestampAhora, // Guardamos la hora de ejecución
             observacion: obsAnterior + textoObs
         };
 
