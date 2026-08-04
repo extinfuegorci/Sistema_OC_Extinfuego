@@ -1959,30 +1959,33 @@ async function prepararImpresion(idOrden) {
         // 5. Imprimir
         const elemento = document.getElementById('plantilla-impresion');
         
-        // Configuramos el elemento para que la librería pueda "tomarle foto" sin que el usuario lo vea
+        // Lo mostramos, pero lo mandamos al fondo de la pantalla
+        // para que html2canvas lo pueda renderizar sin salir en blanco
         elemento.style.display = 'block';
         elemento.style.position = 'absolute';
-        elemento.style.left = '-9999px'; // Lo sacamos de la pantalla
         elemento.style.top = '0';
-        elemento.style.width = '800px'; // Ancho fijo para simular una hoja
-        elemento.style.padding = '20px'; 
+        elemento.style.left = '0';
+        elemento.style.zIndex = '-1000';
+        elemento.style.width = '800px'; // Le damos un ancho fijo estilo hoja Carta
         
         const nombreProveedorLimpio = orden.proveedor_nombre.replace(/[^a-zA-Z0-9]/g, '_');
         const nombreArchivo = `${orden.numero_oc}_${nombreProveedorLimpio}.pdf`;
 
-        // Opciones de máxima calidad para el PDF
+        // Opciones de máxima calidad
         const opcionesPDF = {
-            margin:       0.2, // Margen de la hoja
+            margin:       0.3,
             filename:     nombreArchivo,
             image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Generamos y descargamos directamente
+        // Generamos, guardamos y luego escondemos todo para limpiar
         html2pdf().set(opcionesPDF).from(elemento).save().then(() => {
-            // Ocultamos la plantilla una vez descargado
+            // Ocultamos y restauramos la plantilla
             elemento.style.display = 'none';
+            elemento.style.position = 'static';
+            elemento.style.zIndex = 'auto';
         });
 
     } catch (error) {
