@@ -817,9 +817,15 @@ async function guardarOrdenCompra() {
         }
 
         // ==========================================
-        // 6. ÉXITO Y LIMPIEZA
+        // 6. ÉXITO, IMPRESIÓN Y LIMPIEZA
         // ==========================================
         alert(idOrdenActualEdicion ? '✅ ¡Orden actualizada con éxito!' : '✅ ¡Orden de Compra registrada con éxito!');
+        
+        // PREGUNTA DE IMPRESIÓN (Debe ir antes de limpiar los inputs)
+        const quiereImprimir = confirm("¿Deseas imprimir la orden de trabajo?");
+        if (quiereImprimir) {
+            imprimirOrdenDeTrabajo();
+        }
         
         // Limpiar inputs de texto
         const idsALimpiar = ['oc-num', 'tipo_codigo_id', 'codigo_prefijo', 'correlativo_actual', 
@@ -1835,3 +1841,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+function imprimirOrdenDeTrabajo(datosOrden = null) {
+    // Si pasas datos desde el dashboard, se usan esos. 
+    // Si no (desde el formulario que acabas de guardar), lee el DOM.
+    
+    document.getElementById('print-oc-num').innerText = datosOrden ? datosOrden.numero_oc : document.getElementById('oc-num').value;
+    document.getElementById('print-fecha').innerText = datosOrden ? datosOrden.fecha_solicitud : document.getElementById('fecha-solicitud').value;
+    document.getElementById('print-proveedor').innerText = datosOrden ? datosOrden.proveedor : document.getElementById('proveedor-nombre').value;
+    document.getElementById('print-contacto').innerText = datosOrden ? datosOrden.contacto : document.getElementById('contacto-nombre').value;
+    document.getElementById('print-factura').innerText = datosOrden ? datosOrden.facturar_a : document.getElementById('facturar-a').value;
+    document.getElementById('print-nit').innerText = datosOrden ? datosOrden.nit : document.getElementById('nit-factura').value;
+    document.getElementById('print-pago').innerText = datosOrden ? datosOrden.forma_pago : document.getElementById('forma-pago').value;
+    document.getElementById('print-obs').innerText = datosOrden ? datosOrden.observacion : document.getElementById('observacion').value;
+    
+    document.getElementById('print-subtotal').innerText = datosOrden ? datosOrden.subtotal : document.getElementById('lbl-subtotal').innerText;
+    document.getElementById('print-descuento').innerText = datosOrden ? datosOrden.descuento + '%' : document.getElementById('descuento-pct').value + '%';
+    document.getElementById('print-total').innerText = datosOrden ? 'Bs. ' + datosOrden.total : 'Bs. ' + document.getElementById('lbl-total').innerText;
+
+    // Clonar los items de la tabla
+    const printItemsBody = document.getElementById('print-items-body');
+    printItemsBody.innerHTML = ''; // Limpiar anteriores
+    
+    // Asumiendo que lees de la tabla del formulario actual
+    const filasTabla = document.querySelectorAll('#items-body tr');
+    filasTabla.forEach(fila => {
+        const inputs = fila.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${inputs[0].value}</td> <!-- Cantidad -->
+                <td>${inputs[1].value}</td> <!-- Unidad -->
+                <td>${inputs[2].value}</td> <!-- Descripción -->
+                <td>${inputs[3].value}</td> <!-- Precio -->
+                <td>${inputs[4].value}</td> <!-- Total Item -->
+            `;
+            printItemsBody.appendChild(tr);
+        }
+    });
+
+    // ¡La magia! Llama a la ventana de impresión de Chrome
+    window.print();
+}
