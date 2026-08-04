@@ -1226,8 +1226,8 @@ async function cargarDashboard() {
                     <button class="btn-icon" onclick="editarOrden('${orden.id}')" title="Ver Detalles" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 18px;">
                         <i class="ri-eye-line"></i>
                     </button>
-                    <button class="btn-icon" onclick="prepararImpresion('${orden.id}')" title="Imprimir OC">
-                        <i class="ri-printer-line"></i>
+                    <button class="btn-icon" onclick="prepararImpresion('${orden.id}')" title="Descargar PDF">
+                        <i class="ri-file-pdf-line" style="color: #ea580c;"></i>
                     </button>
                 </td>
             `;
@@ -1939,7 +1939,21 @@ async function prepararImpresion(idOrden) {
         }
 
         // 5. Imprimir
+        const tituloOriginal = document.title;
+        
+        // Limpiamos el nombre del proveedor para que no tenga espacios raros en el nombre del archivo
+        const nombreProveedorLimpio = orden.proveedor_nombre.replace(/[^a-zA-Z0-9]/g, '_');
+        
+        // Cambiamos el título (Esto obliga a Chrome a usar este nombre al "Guardar como PDF")
+        document.title = `${orden.numero_oc}_${nombreProveedorLimpio}`;
+
+        // Llamamos a la ventana de impresión / guardado
         window.print();
+
+        // Restauramos el título original de tu sistema después de 1 segundo
+        setTimeout(() => {
+            document.title = tituloOriginal;
+        }, 1000);
 
     } catch (error) {
         console.error("Error preparando impresión:", error);
