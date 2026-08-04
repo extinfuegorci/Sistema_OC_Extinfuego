@@ -1957,36 +1957,24 @@ async function prepararImpresion(idOrden) {
         }
 
         // 5. Imprimir
-        const elemento = document.getElementById('plantilla-impresion');
+        // ==========================================
+        // 5. PREPARAR NOMBRE DEL ARCHIVO E IMPRIMIR
+        // ==========================================
+        const tituloOriginal = document.title;
         
-        // Lo mostramos, pero lo mandamos al fondo de la pantalla
-        // para que html2canvas lo pueda renderizar sin salir en blanco
-        elemento.style.display = 'block';
-        elemento.style.position = 'absolute';
-        elemento.style.top = '0';
-        elemento.style.left = '0';
-        elemento.style.zIndex = '-1000';
-        elemento.style.width = '800px'; // Le damos un ancho fijo estilo hoja Carta
-        
+        // Limpiamos el nombre del proveedor para que no tenga espacios raros
         const nombreProveedorLimpio = orden.proveedor_nombre.replace(/[^a-zA-Z0-9]/g, '_');
-        const nombreArchivo = `${orden.numero_oc}_${nombreProveedorLimpio}.pdf`;
+        
+        // Cambiamos el título para forzar el nombre del archivo al Guardar como PDF
+        document.title = `${orden.numero_oc}_${nombreProveedorLimpio}`;
 
-        // Opciones de máxima calidad
-        const opcionesPDF = {
-            margin:       0.3,
-            filename:     nombreArchivo,
-            image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
+        // Llamamos a la ventana de impresión nativa
+        window.print();
 
-        // Generamos, guardamos y luego escondemos todo para limpiar
-        html2pdf().set(opcionesPDF).from(elemento).save().then(() => {
-            // Ocultamos y restauramos la plantilla
-            elemento.style.display = 'none';
-            elemento.style.position = 'static';
-            elemento.style.zIndex = 'auto';
-        });
+        // Restauramos el título original de tu sistema
+        setTimeout(() => {
+            document.title = tituloOriginal;
+        }, 1000);
 
     } catch (error) {
         console.error("Error preparando impresión:", error);
