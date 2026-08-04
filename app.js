@@ -1774,18 +1774,36 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
 }
 function intentarCrearNuevaOrden() {
     // 1. Verificar si estamos editando y hubo cambios
-    if (idOrdenActualEdicion && formularioModificado) {
+    if (typeof idOrdenActualEdicion !== 'undefined' && idOrdenActualEdicion && formularioModificado) {
         const confirmarSalida = confirm("Realizaste modificaciones en esta orden. ¿Deseas salir sin actualizar?");
         
-        // Si el usuario presiona "No", detenemos la función y se queda en la vista actual
+        // Si el usuario presiona "Cancelar/No", detenemos la función
         if (!confirmarSalida) {
             return; 
         }
     }
 
-    // 2. Si llega aquí, es porque NO hubo modificaciones, o dijo que SÍ quiere salir.
-    // Procedemos a limpiar todo para una orden nueva.
-    limpiarFormularioNuevaOrden();
+    // 2. Limpiar variables
+    idOrdenActualEdicion = null; 
+    formularioModificado = false;
+
+    // 3. Limpiar los campos visuales
+    document.getElementById('oc-num').value = '';
+    document.getElementById('proveedor-nombre').value = '';
+    document.getElementById('contacto-nombre').value = '';
+    document.getElementById('fecha-solicitud').value = '';
+    document.getElementById('fecha-entrega').value = '';
+    document.getElementById('facturar-a').value = '';
+    document.getElementById('nit-factura').value = '';
+    document.getElementById('forma-pago').value = '';
+    document.getElementById('observacion').value = '';
+    
+    // Limpiar tablas de ítems y pagos si existen
+    const itemsBody = document.getElementById('items-body');
+    if (itemsBody) itemsBody.innerHTML = '';
+    
+    // Recalcular totales a cero
+    if (typeof calcularTotales === 'function') calcularTotales();
 }
 
 function limpiarFormularioNuevaOrden() {
@@ -1804,12 +1822,13 @@ function limpiarFormularioNuevaOrden() {
     cambiarVista('vista-crear-orden'); // Reemplaza con el nombre de tu vista de formulario
 }
 
+// Detectar modificaciones en la vista de la orden de compra
 document.addEventListener('DOMContentLoaded', () => {
-    // Escuchar cambios en el formulario de Órdenes
-    const formularioOC = document.getElementById('form-orden'); // Verifica que este sea el ID real de tu <form>
-    if (formularioOC) {
-        formularioOC.addEventListener('input', () => {
-            // Solo marcamos como modificado si estamos editando una orden existente
+    const vistaOrden = document.getElementById('vista-nueva-orden');
+    
+    if (vistaOrden) {
+        vistaOrden.addEventListener('input', () => {
+            // Solo marcamos como modificado si estamos editando una orden existente (idOrdenActualEdicion tiene valor)
             if (idOrdenActualEdicion) {
                 formularioModificado = true;
             }
