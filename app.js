@@ -824,7 +824,8 @@ async function guardarOrdenCompra() {
         // PREGUNTA DE IMPRESIÓN (Debe ir antes de limpiar los inputs)
         const quiereImprimir = confirm("¿Deseas imprimir la orden de trabajo?");
         if (quiereImprimir) {
-            imprimirOrdenDeTrabajo();
+            // Le pasamos el idOrdenGenerada para que lo consulte de la BD
+            prepararImpresion(idOrdenGenerada);
         }
         
         // Limpiar inputs de texto
@@ -1225,7 +1226,7 @@ async function cargarDashboard() {
                     <button class="btn-icon" onclick="editarOrden('${orden.id}')" title="Ver Detalles" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 18px;">
                         <i class="ri-eye-line"></i>
                     </button>
-                    <button class="btn-icon" onclick="prepararImpresionDesdeDashboard('${orden.id}')" title="Imprimir OC">
+                    <button class="btn-icon" onclick="prepararImpresion('${orden.id}')" title="Imprimir OC">
                         <i class="ri-printer-line"></i>
                     </button>
                 </td>
