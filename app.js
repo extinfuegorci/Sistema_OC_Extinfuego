@@ -1225,6 +1225,9 @@ async function cargarDashboard() {
                     <button class="btn-icon" onclick="editarOrden('${orden.id}')" title="Ver Detalles" style="background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 18px;">
                         <i class="ri-eye-line"></i>
                     </button>
+                    <button class="btn-icon" onclick="prepararImpresionDesdeDashboard('${orden.id}')" title="Imprimir OC">
+                        <i class="ri-printer-line"></i>
+                    </button>
                 </td>
             `;
             if (tbody) tbody.appendChild(tr);
@@ -1881,4 +1884,64 @@ function imprimirOrdenDeTrabajo(datosOrden = null) {
 
     // ¡La magia! Llama a la ventana de impresión de Chrome
     window.print();
+}
+async function prepararImpresionDesdeDashboard(idOrden) {
+    try {
+        // 1. Buscamos los datos principales de la orden en Supabase
+        const { data: orden, error: errorOrden } = await _supabase
+            .from('ordenes')
+            .select('*')
+            .eq('id', idOrden)
+            .single();
+            
+        if (errorOrden) throw errorOrden;
+
+        // 2. Buscamos los ítems de esa orden
+        const { data: items, error: errorItems } = await _supabase
+            .from('items_orden')
+            .select('*')
+            .eq('orden_id', idOrden)
+            .order('numero_item', { ascending: true });
+            
+        if (errorItems) throw errorItems;
+
+        // 3. Llenamos la plantilla HTML con los datos de Supabase
+        document.getElementById('print-oc-num').innerText = orden.numero_oc;
+        document.getElementById('print-fecha').innerText = orden.fecha_solicitud;
+        document.getElementById('print-proveedor').innerText = orden.proveedor_nombre;
+        document.getElementById('print-contacto').innerText = orden.contacto_nombre;
+        document.getElementById('print-factura').innerText = orden.facturar_a;
+        document.getElementById('print-nit').innerText = orden.nit_factura;
+        document.getElementById('print-pago').innerText = orden.forma_pago;
+        document.getElementById('print-obs').innerText = orden.observacion || '';
+        
+        document.getElementById('print-subtotal').innerText = orden.subtotal.toFixed(2);
+        document.getElementById('print-descuento').innerText = orden.descuento_porcentaje + '%';
+        document.getElementById('print-total').innerText = 'Bs. ' + orden.monto_total.toFixed(2);
+
+        // 4. Llenamos los ítems en la tabla de impresión
+        const printItemsBody = document.getElementById('print-items-body');
+        printItemsBody.innerHTML = ''; 
+        
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            // Calculamos el total por ítem si no viene de la BD
+            const totalItem = (item.cantidad * item.precio_unitario).toFixed(2);
+            tr.innerHTML = `
+                <td>${item.cantidad}</td>
+                <td>${item.unidad}</td>
+                <td>${item.descripcion}</td>
+                <td>${item.precio_unitario.toFixed(2)}</td>
+                <td>${totalItem}</td>
+            `;
+            printItemsBody.appendChild(tr);
+        });
+
+        // 5. ¡Llamamos a la ventana de impresión!
+        window.print();
+
+    } catch (error) {
+        console.error("Error al preparar la impresión:", error);
+        alert("Hubo un problema al cargar los datos para imprimir.");
+    }
 }
