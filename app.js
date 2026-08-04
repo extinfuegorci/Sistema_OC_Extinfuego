@@ -1553,7 +1553,6 @@ async function solicitarAprobacion(tipoAccion) {
     const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
     const esAdmin = usuarioActual && usuarioActual.privilegio_id === 1;
 
-    // Textos dinámicos
     const accionTexto = tipoAccion === 'COMPLETADA' ? 'dar por COMPLETADA' : 
                         tipoAccion === 'ANULADA' ? 'ANULAR' : 'REHABILITAR';
 
@@ -1571,13 +1570,21 @@ async function solicitarAprobacion(tipoAccion) {
                 estado_aprobacion: 'PENDIENTE'
             };
 
-            // Si un Admin lo hace directamente, simulamos que él mismo lo solicitó y aprobó al instante
+            // ACCIÓN DIRECTA DEL ADMIN: Generar el texto exacto
             if (esAdmin) {
                 const { data: orden } = await _supabase.from('ordenes').select('observacion').eq('id', idOrdenActualEdicion).single();
-                const obsAnterior = orden.observacion ? orden.observacion + '\n' : '';
+                // Si ya había observación, le damos un salto de línea limpio
+                const obsAnterior = (orden.observacion && orden.observacion.trim() !== '') ? orden.observacion.trim() + '\n' : '';
                 const fechaHoy = new Date().toLocaleDateString('es-ES');
                 
-                const textoObs = `\n--- \n🗓️ [${fechaHoy}] ACCIÓN: ${tipoAccion === 'REHABILITAR' ? 'REHABILITADA' : tipoAccion}\n👤 Solicitado por: ${usuarioActual.nombre_completo}\n✅ Aprobado por: ${usuarioActual.nombre_completo} (Acción Directa)`;
+                let textoObs = '';
+                if (tipoAccion === 'REHABILITAR') {
+                    textoObs = `REHABILITADA en fecha ${fechaHoy}, solicitada por ${usuarioActual.nombre_completo}, aprobada por ${usuarioActual.nombre_completo}`;
+                } else if (tipoAccion === 'ANULADA') {
+                    textoObs = `ANULADA en fecha ${fechaHoy}, solicitada por ${usuarioActual.nombre_completo}, aprobada por ${usuarioActual.nombre_completo}`;
+                } else {
+                    textoObs = `COMPLETADA en fecha ${fechaHoy}, solicitada por ${usuarioActual.nombre_completo}, aprobada por ${usuarioActual.nombre_completo}`;
+                }
                 
                 updateData.estado_aprobacion = 'APROBADA';
                 updateData.aprobado_por = usuarioActual.nombre_completo;
@@ -1606,13 +1613,12 @@ async function cargarAprobaciones() {
     const usuarioActual = sesionString ? JSON.parse(sesionString) : null;
     const esAdmin = usuarioActual && usuarioActual.privilegio_id === 1;
 
-    // Solo traemos órdenes que hayan pasado por el botón de solicitar (solicitado_por no es nulo)
     let query = _supabase.from('ordenes')
         .select('*')
         .not('solicitado_por', 'is', null)
         .order('fecha_solicitud', { ascending: false });
 
-    // EL TRUCO DE PRIVACIDAD: Si NO es admin, filtramos para que solo vea las suyas
+    // Los usuarios normales solo ven su propio historial de solicitudes
     if (!esAdmin) {
         query = query.eq('solicitado_por', usuarioActual.nombre_completo);
     }
@@ -1627,25 +1633,25 @@ async function cargarAprobaciones() {
     tbody.innerHTML = ordenes.map(orden => {
         const fechaReq = orden.fecha_solicitud ? new Date(orden.fecha_solicitud + 'T00:00:00').toLocaleDateString('es-ES') : '-';
         
-        // Deducir qué acción se pidió
         let accionSolicitada = '';
         if (orden.estado.includes('COMPLETADA')) accionSolicitada = 'COMPLETADA';
         else if (orden.estado.includes('ANULADA')) accionSolicitada = 'ANULADA';
         else if (orden.estado.includes('REHABILITAR') || (orden.estado === 'PENDIENTE' && orden.estado_aprobacion !== 'PENDIENTE')) accionSolicitada = 'REHABILITAR';
         else accionSolicitada = orden.estado.replace('APROBACIÓN_', '');
 
-        // Colores según el estado de la aprobación
         let badgeStyle = '';
         let estadoTxt = '';
         let accionesHTML = '';
 
+        // ESTADO PENDIENTE
         if (orden.estado_aprobacion === 'PENDIENTE') {
             badgeStyle = 'background-color: #fef08a; color: #854d0e;';
             estadoTxt = `SOLICITA ${accionSolicitada}`;
             
             if (esAdmin) {
+                // CENTRADO ABSOLUTO DE BOTONES
                 accionesHTML = `
-                    <div style="display: flex; gap: 8px; justify-content: center;">
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; width: 100%;">
                         <button class="btn btn-sm" style="background-color: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" onclick="resolverAprobacion('${orden.id}', '${accionSolicitada}', true)">
                             Aprobar
                         </button>
@@ -1655,30 +1661,33 @@ async function cargarAprobaciones() {
                     </div>
                 `;
             } else {
-                accionesHTML = `<span style="color: #854d0e; font-size: 12px; font-weight: bold;"><i class="ri-time-line"></i> Pendiente de Admin</span>`;
+                accionesHTML = `<div style="color: #854d0e; font-size: 12px; font-weight: bold; text-align: center;"><i class="ri-time-line"></i> Pendiente de Admin</div>`;
             }
+        // ESTADO APROBADA
         } else if (orden.estado_aprobacion === 'APROBADA') {
             badgeStyle = 'background-color: #dcfce3; color: #166534;';
             estadoTxt = `ACCIÓN ${accionSolicitada}`;
-            accionesHTML = `<div style="text-align: center; font-size: 11px; color: #166534; font-weight: bold;">PROCESADO<br><span style="font-weight: normal;">Aprobado por:<br>${orden.aprobado_por}</span></div>`;
+            accionesHTML = `<div style="text-align: center; font-size: 12px; color: #166534; font-weight: bold;">APROBADA<br><span style="font-weight: normal; font-size: 11px;">Por: ${orden.aprobado_por}</span></div>`;
+        // ESTADO RECHAZADA
         } else if (orden.estado_aprobacion === 'RECHAZADA') {
             badgeStyle = 'background-color: #fee2e2; color: #991b1b;';
             estadoTxt = `RECHAZÓ ${accionSolicitada}`;
-            accionesHTML = `<div style="text-align: center; font-size: 11px; color: #991b1b; font-weight: bold;">PROCESADO<br><span style="font-weight: normal;">Rechazado por:<br>${orden.aprobado_por}</span></div>`;
+            accionesHTML = `<div style="text-align: center; font-size: 12px; color: #991b1b; font-weight: bold;">RECHAZADA<br><span style="font-weight: normal; font-size: 11px;">Por: ${orden.aprobado_por}</span></div>`;
         }
 
-        let badge = `<span style="${badgeStyle} padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; text-align: center; display: inline-block;">${estadoTxt}</span>`;
+        let badge = `<span style="${badgeStyle} padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; text-align: center; display: inline-block;">${estadoTxt}</span>`;
 
+        // SE AGREGA VERTICAL-ALIGN MIDDLE Y TEXT-ALIGN CENTER A LAS CELDAS FINALES
         return `
             <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px 16px; font-weight: bold; color: #334155;">${orden.numero_oc || '-'}</td>
-                <td style="padding: 12px 16px; color: #475569;">
+                <td style="padding: 12px 16px; font-weight: bold; color: #334155; vertical-align: middle;">${orden.numero_oc || '-'}</td>
+                <td style="padding: 12px 16px; color: #475569; vertical-align: middle;">
                     ${orden.proveedor_nombre || '-'}<br>
                     <span style="font-size: 11px; color: #94a3b8;"><i class="ri-user-line"></i> Req: ${orden.solicitado_por}</span>
                 </td>
-                <td style="padding: 12px 16px; color: #475569;">${fechaReq}</td>
-                <td style="padding: 12px 16px; text-align: center;">${badge}</td>
-                <td style="padding: 12px 16px; align-items: center;">${accionesHTML}</td>
+                <td style="padding: 12px 16px; color: #475569; vertical-align: middle;">${fechaReq}</td>
+                <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">${badge}</td>
+                <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">${accionesHTML}</td>
             </tr>
         `;
     }).join('');
@@ -1696,27 +1705,33 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
     const nombreAdmin = usuarioActual ? usuarioActual.nombre_completo : 'Admin';
 
     try {
-        // 1. Extraemos la observación actual
         const { data: orden } = await _supabase.from('ordenes').select('observacion, solicitado_por').eq('id', idOrden).single();
-        const obsAnterior = orden.observacion ? orden.observacion + '\n' : '';
+        // Preservamos el historial sumando un salto de línea limpio
+        const obsAnterior = (orden.observacion && orden.observacion.trim() !== '') ? orden.observacion.trim() + '\n' : '';
         const fechaHoy = new Date().toLocaleDateString('es-ES');
         
         let nuevoEstado = '';
         let textoObs = '';
 
         if (aprueba) {
-            // Lógica si el admin APRUEBA
             if (accionSolicitada === 'ANULADA') nuevoEstado = 'ANULADA';
             if (accionSolicitada === 'COMPLETADA') nuevoEstado = 'COMPLETADA';
-            if (accionSolicitada === 'REHABILITAR') nuevoEstado = 'PENDIENTE'; // Vuelve a la vida
+            if (accionSolicitada === 'REHABILITAR') nuevoEstado = 'PENDIENTE';
 
-            textoObs = `\n--- \n🗓️ [${fechaHoy}] ACCIÓN: ${accionSolicitada === 'REHABILITAR' ? 'REHABILITADA' : accionSolicitada}\n👤 Solicitado por: ${orden.solicitado_por}\n✅ Aprobado por: ${nombreAdmin}`;
+            // FORMATO EXACTO SOLICITADO PARA APROBACIÓN
+            if (accionSolicitada === 'REHABILITAR') {
+                textoObs = `REHABILITADA en fecha ${fechaHoy}, solicitada por ${orden.solicitado_por}, aprobada por ${nombreAdmin}`;
+            } else if (accionSolicitada === 'ANULADA') {
+                textoObs = `ANULADA en fecha ${fechaHoy}, solicitada por ${orden.solicitado_por}, aprobada por ${nombreAdmin}`;
+            } else {
+                textoObs = `COMPLETADA en fecha ${fechaHoy}, solicitada por ${orden.solicitado_por}, aprobada por ${nombreAdmin}`;
+            }
+
         } else {
-            // Lógica si el admin RECHAZA
-            if (accionSolicitada === 'REHABILITAR') nuevoEstado = 'ANULADA'; // Se queda anulada
-            else nuevoEstado = 'PENDIENTE'; // Vuelve a estar en curso
+            if (accionSolicitada === 'REHABILITAR') nuevoEstado = 'ANULADA'; 
+            else nuevoEstado = 'PENDIENTE';
 
-            textoObs = `\n--- \n🗓️ [${fechaHoy}] ❌ SOLICITUD DE ${accionSolicitada} RECHAZADA\n👤 Solicitado por: ${orden.solicitado_por}\n🚫 Rechazado por: ${nombreAdmin}`;
+            textoObs = `RECHAZADA (Solicitud de ${accionSolicitada}) en fecha ${fechaHoy}, solicitada por ${orden.solicitado_por}, rechazada por ${nombreAdmin}`;
         }
 
         const updateData = {
