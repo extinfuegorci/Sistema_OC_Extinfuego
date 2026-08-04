@@ -287,9 +287,11 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
         margin: 0; 
     }
 
-    /* 2. Le damos un margen interno a la hoja para que el contenido no quede pegado al borde físico */
-    body {
-        margin: 1.5cm; 
+    /* 2. Asegurarnos de que el body no genere páginas extra */
+    body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
     }
 
     /* 3. Forzar a Chrome a imprimir los colores de fondo y gráficos */
@@ -303,15 +305,18 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
         display: none !important;
     }
 
-    /* 5. Mostrar SOLO la plantilla de impresión */
+    /* 5. Mostrar la plantilla ocupando toda la hoja */
     #plantilla-impresion {
         display: block !important;
-        /* Quitamos el 'position: absolute' que teníamos antes para que respete el margen de 1.5cm */
-        width: 100%;
+        position: absolute !important; /* Lo volvemos a sacar de su contenedor para que ocupe todo el ancho */
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        padding: 1.5cm 2cm !important; /* AQUÍ le damos el espacio interno de la hoja */
+        box-sizing: border-box !important; /* Crucial: evita que el padding genere una segunda hoja en blanco */
         background: white;
         color: black;
         margin: 0;
-        padding: 0;
     }
 
     /* 4. Estilos internos de la plantilla */
