@@ -1844,104 +1844,104 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-function imprimirOrdenDeTrabajo(datosOrden = null) {
-    // Si pasas datos desde el dashboard, se usan esos. 
-    // Si no (desde el formulario que acabas de guardar), lee el DOM.
-    
-    document.getElementById('print-oc-num').innerText = datosOrden ? datosOrden.numero_oc : document.getElementById('oc-num').value;
-    document.getElementById('print-fecha').innerText = datosOrden ? datosOrden.fecha_solicitud : document.getElementById('fecha-solicitud').value;
-    document.getElementById('print-proveedor').innerText = datosOrden ? datosOrden.proveedor : document.getElementById('proveedor-nombre').value;
-    document.getElementById('print-contacto').innerText = datosOrden ? datosOrden.contacto : document.getElementById('contacto-nombre').value;
-    document.getElementById('print-factura').innerText = datosOrden ? datosOrden.facturar_a : document.getElementById('facturar-a').value;
-    document.getElementById('print-nit').innerText = datosOrden ? datosOrden.nit : document.getElementById('nit-factura').value;
-    document.getElementById('print-pago').innerText = datosOrden ? datosOrden.forma_pago : document.getElementById('forma-pago').value;
-    document.getElementById('print-obs').innerText = datosOrden ? datosOrden.observacion : document.getElementById('observacion').value;
-    
-    document.getElementById('print-subtotal').innerText = datosOrden ? datosOrden.subtotal : document.getElementById('lbl-subtotal').innerText;
-    document.getElementById('print-descuento').innerText = datosOrden ? datosOrden.descuento + '%' : document.getElementById('descuento-pct').value + '%';
-    document.getElementById('print-total').innerText = datosOrden ? 'Bs. ' + datosOrden.total : 'Bs. ' + document.getElementById('lbl-total').innerText;
-
-    // Clonar los items de la tabla
-    const printItemsBody = document.getElementById('print-items-body');
-    printItemsBody.innerHTML = ''; // Limpiar anteriores
-    
-    // Asumiendo que lees de la tabla del formulario actual
-    const filasTabla = document.querySelectorAll('#items-body tr');
-    filasTabla.forEach(fila => {
-        const inputs = fila.querySelectorAll('input');
-        if (inputs.length >= 5) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${inputs[0].value}</td> <!-- Cantidad -->
-                <td>${inputs[1].value}</td> <!-- Unidad -->
-                <td>${inputs[2].value}</td> <!-- Descripción -->
-                <td>${inputs[3].value}</td> <!-- Precio -->
-                <td>${inputs[4].value}</td> <!-- Total Item -->
-            `;
-            printItemsBody.appendChild(tr);
-        }
-    });
-
-    // ¡La magia! Llama a la ventana de impresión de Chrome
-    window.print();
+// --- FUNCIONES AYUDANTES DE FECHA ---
+function formatearFechaDDMMYYYY(fechaString) {
+    if (!fechaString) return '--/--/----';
+    const partes = fechaString.split('-');
+    if (partes.length !== 3) return fechaString;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`; // Retorna DD/MM/YYYY
 }
-async function prepararImpresionDesdeDashboard(idOrden) {
+
+function obtenerFechaHoraActual() {
+    const now = new Date();
+    const dia = String(now.getDate()).padStart(2, '0');
+    const mes = String(now.getMonth() + 1).padStart(2, '0');
+    const anio = now.getFullYear();
+    let horas = now.getHours();
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ampm = horas >= 12 ? 'PM' : 'AM';
+    horas = horas % 12;
+    horas = horas ? horas : 12; // la hora '0' debe ser '12'
+    
+    return `${dia}/${mes}/${anio} ${String(horas).padStart(2, '0')}:${min} ${ampm}`;
+}
+
+// --- FUNCIÓN PRINCIPAL DE IMPRESIÓN ---
+async function prepararImpresion(idOrden) {
     try {
-        // 1. Buscamos los datos principales de la orden en Supabase
-        const { data: orden, error: errorOrden } = await _supabase
-            .from('ordenes')
-            .select('*')
-            .eq('id', idOrden)
-            .single();
-            
-        if (errorOrden) throw errorOrden;
+        // 1. Traer Orden, Ítems y Pagos
+        const { data: orden, error: errOrden } = await _supabase.from('ordenes').select('*').eq('id', idOrden).single();
+        const { data: items, error: errItems } = await _supabase.from('items_orden').select('*').eq('orden_id', idOrden).order('numero_item', { ascending: true });
+        const { data: pagos, error: errPagos } = await _supabase.from('historial_pagos').select('*').eq('orden_id', idOrden).order('fecha_pago', { ascending: true });
 
-        // 2. Buscamos los ítems de esa orden
-        const { data: items, error: errorItems } = await _supabase
-            .from('items_orden')
-            .select('*')
-            .eq('orden_id', idOrden)
-            .order('numero_item', { ascending: true });
-            
-        if (errorItems) throw errorItems;
+        if (errOrden) throw errOrden;
 
-        // 3. Llenamos la plantilla HTML con los datos de Supabase
+        // 2. Llenar cabeceras y fechas
         document.getElementById('print-oc-num').innerText = orden.numero_oc;
-        document.getElementById('print-fecha').innerText = orden.fecha_solicitud;
+        document.getElementById('print-fecha').innerText = formatearFechaDDMMYYYY(orden.fecha_solicitud);
+        document.getElementById('print-fecha-hora').innerText = obtenerFechaHoraActual();
+        
         document.getElementById('print-proveedor').innerText = orden.proveedor_nombre;
         document.getElementById('print-contacto').innerText = orden.contacto_nombre;
         document.getElementById('print-factura').innerText = orden.facturar_a;
         document.getElementById('print-nit').innerText = orden.nit_factura;
         document.getElementById('print-pago').innerText = orden.forma_pago;
-        document.getElementById('print-obs').innerText = orden.observacion || '';
+        document.getElementById('print-obs').innerText = orden.observacion || 'Ninguna';
         
         document.getElementById('print-subtotal').innerText = orden.subtotal.toFixed(2);
         document.getElementById('print-descuento').innerText = orden.descuento_porcentaje + '%';
         document.getElementById('print-total').innerText = 'Bs. ' + orden.monto_total.toFixed(2);
 
-        // 4. Llenamos los ítems en la tabla de impresión
+        // 3. Llenar tabla de ítems
         const printItemsBody = document.getElementById('print-items-body');
         printItemsBody.innerHTML = ''; 
-        
         items.forEach(item => {
-            const tr = document.createElement('tr');
-            // Calculamos el total por ítem si no viene de la BD
             const totalItem = (item.cantidad * item.precio_unitario).toFixed(2);
-            tr.innerHTML = `
-                <td>${item.cantidad}</td>
-                <td>${item.unidad}</td>
-                <td>${item.descripcion}</td>
-                <td>${item.precio_unitario.toFixed(2)}</td>
-                <td>${totalItem}</td>
-            `;
-            printItemsBody.appendChild(tr);
+            printItemsBody.innerHTML += `
+                <tr>
+                    <td>${item.cantidad}</td>
+                    <td>${item.unidad}</td>
+                    <td>${item.descripcion}</td>
+                    <td>${item.precio_unitario.toFixed(2)}</td>
+                    <td>${totalItem}</td>
+                </tr>`;
         });
 
-        // 5. ¡Llamamos a la ventana de impresión!
+        // 4. Lógica dinámica del recuadro de Pagos / Vencimiento
+        const sectionPagos = document.getElementById('print-pagos-section');
+        if (orden.forma_pago === 'CREDITO' || orden.forma_pago === 'ANTICIPO') {
+            sectionPagos.style.display = 'block'; // Mostrar recuadro
+            document.getElementById('print-tipo-pago').innerText = orden.forma_pago;
+            document.getElementById('print-vencimiento').innerText = formatearFechaDDMMYYYY(orden.fecha_vencimiento);
+            
+            const pagosBody = document.getElementById('print-pagos-body');
+            pagosBody.innerHTML = '';
+            
+            // Filtramos 'PAGO-CONTADO' por si acaso, aunque no debería existir en Crédito/Anticipo
+            const pagosReales = pagos ? pagos.filter(p => p.numero_recibo !== 'PAGO-CONTADO') : [];
+            
+            if (pagosReales.length > 0) {
+                pagosReales.forEach(pago => {
+                    pagosBody.innerHTML += `
+                        <tr>
+                            <td>${pago.numero_recibo || '-'}</td>
+                            <td>${formatearFechaDDMMYYYY(pago.fecha_pago)}</td>
+                            <td>Bs. ${pago.monto.toFixed(2)}</td>
+                        </tr>`;
+                });
+            } else {
+                pagosBody.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic; color: #666;">Sin pagos registrados aún</td></tr>`;
+            }
+        } else {
+            // Es al contado, ocultamos el recuadro
+            sectionPagos.style.display = 'none';
+        }
+
+        // 5. Imprimir
         window.print();
 
     } catch (error) {
-        console.error("Error al preparar la impresión:", error);
-        alert("Hubo un problema al cargar los datos para imprimir.");
+        console.error("Error preparando impresión:", error);
+        alert("Ocurrió un error al preparar la impresión.");
     }
 }
