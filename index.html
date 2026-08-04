@@ -154,6 +154,9 @@
                 <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
                     <i class="ri-file-add-line"></i> Nueva Orden
                 </button>
+                <button class="nav-btn" onclick="cambiarVista('aprobaciones', this)" id="nav-aprobaciones">
+                    <i class="ri-shield-check-line"></i> Aprobaciones
+                </button>
                 <button class="nav-btn" onclick="cambiarVista('clientes', this)">
                     <i class="ri-building-line"></i> Clientes / Proveedores
                 </button>
@@ -644,7 +647,29 @@
                     </table>
                 </div>
             </section>
+            <!-- SECCIÓN 6: APROBACIONES -->
+            <section id="vista-aprobaciones" class="vista">
+                <div class="topbar-actions mb-15">
+                    <p style="color: #64748b; font-size: 14px;"><i class="ri-information-line"></i> Bandeja de solicitudes de anulación y finalización de órdenes.</p>
+                </div>
 
+                <div class="table-container">
+                    <table class="table-dashboard" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead style="color: #64748b; font-size: 13px; font-weight: 500; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; background-color: #f8fafc;">
+                            <tr>
+                                <th style="padding: 12px 16px;">OC Nº</th>
+                                <th style="padding: 12px 16px;">PROVEEDOR</th>
+                                <th style="padding: 12px 16px;">FECHA SOLICITUD</th>
+                                <th style="padding: 12px 16px;">ACCIÓN SOLICITADA</th>
+                                <th style="padding: 12px 16px; text-align: center;">ESTADO / ACCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-aprobaciones-body">
+                            <!-- Aquí JavaScript inyectará las filas -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div> <!-- Cierre de #app-layout -->
 
