@@ -151,7 +151,7 @@
                 <button class="nav-btn active" onclick="cambiarVista('dashboard', this)">
                     <i class="ri-dashboard-line"></i> Dashboard / Reportes
                 </button>
-                <button class="nav-btn" onclick="cambiarVista('nueva-orden', this)">
+                <button class="nav-btn" onclick="intentarCrearNuevaOrden(); cambiarVista('nueva-orden', this)">
                     <i class="ri-file-add-line"></i> Nueva Orden
                 </button>
                 <button class="nav-btn" onclick="cambiarVista('aprobaciones', this)" id="nav-aprobaciones">
@@ -194,7 +194,7 @@
             <header class="topbar">
                 <h1 id="titulo-seccion">Dashboard General</h1>
                 <div class="actions">
-                    <button class="btn btn-primary" onclick="cambiarVista('nueva-orden')">
+                    <button class="btn btn-primary" onclick="intentarCrearNuevaOrden(); cambiarVista('nueva-orden')">
                         <i class="ri-add-line"></i> Crear Orden
                     </button>
                 </div>
