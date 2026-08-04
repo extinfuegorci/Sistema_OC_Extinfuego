@@ -274,26 +274,47 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
 }
 
 /* ==========================================
-   ESTILOS PARA LA PLANTILLA PDF (html2pdf)
+   ESTILOS NATIVOS DE IMPRESIÓN Y PDF
    ========================================== */
-#plantilla-impresion {
-    display: none; /* Oculto por defecto en la pantalla normal */
-    background: white; /* Forzamos fondo blanco para el PDF */
-    color: black;
-    box-sizing: border-box;
+@media print {
+    /* 1. Forzar a Chrome a imprimir los colores de fondo y gráficos */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 2. Ocultar todo el sistema (sidebar, topbar, vistas) */
+    .sidebar, .topbar, .vista, #pantalla-carga, .modal {
+        display: none !important;
+    }
+
+    /* 3. Mostrar SOLO la plantilla de impresión */
+    #plantilla-impresion {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* 4. Estilos internos de la plantilla */
+    .print-header { display: flex; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 10px; margin-bottom: 20px; }
+    .print-title { font-size: 24px; font-weight: bold; }
+    .print-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-size: 14px; }
+    
+    .print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 13px; }
+    
+    .print-totals { width: 300px; margin-left: auto; font-size: 14px; }
+    .print-totals-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    
+    .print-signatures { display: flex; justify-content: space-around; margin-top: 50px; text-align: center; font-size: 14px;}
+    .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 50px; padding-top: 5px; }
+
+    .print-pagos-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    .print-pagos-table th, .print-pagos-table td { border: 1px solid #ccc; padding: 6px; text-align: left; }
 }
-
-/* Sacamos todo esto del @media print para que html2pdf lo pueda leer */
-.print-header { display: flex; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 10px; margin-bottom: 20px; }
-.print-title { font-size: 24px; font-weight: bold; }
-.print-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-size: 14px; }
-.print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-.print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 13px; }
-.print-totals { width: 300px; margin-left: auto; font-size: 14px; }
-.print-totals-row { display: flex; justify-content: space-between; padding: 5px 0; }
-.print-signatures { display: flex; justify-content: space-around; margin-top: 50px; text-align: center; font-size: 14px;}
-.signature-line { border-top: 1px solid #000; width: 200px; margin-top: 50px; padding-top: 5px; }
-
-/* Estilos para la tabla de pagos */
-.print-pagos-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-.print-pagos-table th, .print-pagos-table td { border: 1px solid #ccc; padding: 6px; text-align: left; }
