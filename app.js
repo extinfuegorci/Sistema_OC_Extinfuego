@@ -726,8 +726,9 @@ async function guardarOrdenCompra() {
             fecha_vencimiento: fechaVencimientoFinal,
             porcentaje_anticipo: porcentajeAnticipoFinal
         };
-
+        
         let idOrdenGenerada = idOrdenActualEdicion;
+        let formularioModificado = false;
 
         if (idOrdenActualEdicion) {
             // A. MODO ACTUALIZACIÓN
@@ -1771,3 +1772,47 @@ window.resolverAprobacion = async function(idOrden, accionSolicitada, aprueba) {
         alert("❌ Ocurrió un error al intentar procesar la orden.");
     }
 }
+function intentarCrearNuevaOrden() {
+    // 1. Verificar si estamos editando y hubo cambios
+    if (idOrdenActualEdicion && formularioModificado) {
+        const confirmarSalida = confirm("Realizaste modificaciones en esta orden. ¿Deseas salir sin actualizar?");
+        
+        // Si el usuario presiona "No", detenemos la función y se queda en la vista actual
+        if (!confirmarSalida) {
+            return; 
+        }
+    }
+
+    // 2. Si llega aquí, es porque NO hubo modificaciones, o dijo que SÍ quiere salir.
+    // Procedemos a limpiar todo para una orden nueva.
+    limpiarFormularioNuevaOrden();
+}
+
+function limpiarFormularioNuevaOrden() {
+    // Resetear los campos del formulario
+    const formularioOC = document.getElementById('form-orden');
+    if (formularioOC) formularioOC.reset();
+
+    // ¡MUY IMPORTANTE! Limpiar el ID para que el sistema sepa que es una creación y no una actualización
+    idOrdenActualEdicion = null; 
+    formularioModificado = false;
+
+    // (Opcional) Si tienes tablas de detalle de productos, debes vaciarlas aquí también
+    // ejemplo: document.getElementById('tabla-productos-body').innerHTML = '';
+
+    // Cambiar a la vista de creación
+    cambiarVista('vista-crear-orden'); // Reemplaza con el nombre de tu vista de formulario
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Escuchar cambios en el formulario de Órdenes
+    const formularioOC = document.getElementById('form-orden'); // Verifica que este sea el ID real de tu <form>
+    if (formularioOC) {
+        formularioOC.addEventListener('input', () => {
+            // Solo marcamos como modificado si estamos editando una orden existente
+            if (idOrdenActualEdicion) {
+                formularioModificado = true;
+            }
+        });
+    }
+});
