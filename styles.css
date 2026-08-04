@@ -276,24 +276,37 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--border-colo
 /* ==========================================
    ESTILOS NATIVOS DE IMPRESIÓN Y PDF
    ========================================== */
+#plantilla-impresion {
+    display: none; /* Esto arregla el problema visual en el lado derecho */
+}
+
 @media print {
-    /* 1. Forzar a Chrome a imprimir los colores de fondo y gráficos */
+    
+    /* 1. Elimina todos los encabezados y pies de página automáticos de Chrome */
+    @page {
+        margin: 0; 
+    }
+
+    /* 2. Le damos un margen interno a la hoja para que el contenido no quede pegado al borde físico */
+    body {
+        margin: 1.5cm; 
+    }
+
+    /* 3. Forzar a Chrome a imprimir los colores de fondo y gráficos */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* 2. Ocultar todo el sistema (sidebar, topbar, vistas) */
+    /* 4. Ocultar todo el sistema (sidebar, topbar, vistas) */
     .sidebar, .topbar, .vista, #pantalla-carga, .modal {
         display: none !important;
     }
 
-    /* 3. Mostrar SOLO la plantilla de impresión */
+    /* 5. Mostrar SOLO la plantilla de impresión */
     #plantilla-impresion {
         display: block !important;
-        position: absolute;
-        top: 0;
-        left: 0;
+        /* Quitamos el 'position: absolute' que teníamos antes para que respete el margen de 1.5cm */
         width: 100%;
         background: white;
         color: black;
